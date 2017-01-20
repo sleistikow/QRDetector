@@ -104,24 +104,27 @@ std::vector<cv::Mat> QRDetector::findQRCodes(const cv::Mat &image) const {
     tmp.a = centerOfMass[positionCandidates[0]];
     tmp.b = centerOfMass[positionCandidates[1]];
     tmp.c = centerOfMass[positionCandidates[2]];
+    tmp.d = intersect(tmp.b, tmp.c, tmp.a);
 
     codes.push_back(tmp);
 
-    /*
+
     for(const QRCode& code : codes) {
         result.push_back(normalizeQRCode(image, code));
     }
-    */
 
-    //circle(drawing, tmp.a, 5, cv::Scalar(255, 0, 0), -1, 8, 0);
-    //circle(drawing, tmp.b, 5, cv::Scalar(0, 255, 0), -1, 8, 0);
-    //circle(drawing, tmp.c, 5, cv::Scalar(0, 0, 255), -1, 8, 0);
+    circle(drawing, tmp.a, 5, cv::Scalar(255, 0, 0), -1, 8, 0);
+    circle(drawing, tmp.b, 5, cv::Scalar(0, 255, 0), -1, 8, 0);
+    circle(drawing, tmp.c, 5, cv::Scalar(0, 0, 255), -1, 8, 0);
+    circle(drawing, tmp.d, 5, cv::Scalar(255, 0, 255), -1, 8, 0);
 
+    /*
     for(int i=0; i<rating.size(); i++) {
         if(rating[i] > MATCHING_THRESHOLD) {
             circle(drawing, centerOfMass[positionCandidates[i]], 5, cv::Scalar(255, 0, 0), -1, 8, 0);
         }
     }
+    */
 
     result.push_back(drawing);
 
@@ -130,13 +133,20 @@ std::vector<cv::Mat> QRDetector::findQRCodes(const cv::Mat &image) const {
 
 cv::Mat QRDetector::normalizeQRCode(const cv::Mat& image, const QRCode& code) const {
 
-    cv::Mat result = cv::Mat::zeros(300, 300, image.type());
+    cv::Mat result = cv::Mat::zeros(400, 400, image.type());
 
-    cv::Point2f srcTri[] = {code.a, code.b, code.c};
-    cv::Point2f dstTri[] = {{0, 300}, {0, 0}, {300, 0}};
+    cv::Point2f srcTri[] = {code.c, code.b, code.a, code.d};
+    float o = 0.15f * result.rows;
+    cv::Point2f dstTri[] = {
+            {0.0f + o, 0.0f + o},
+            {(result.rows-1) - o, 0.0f + o},
+            {0.0f + o, result.cols-1 - o},
+            {(result.rows-1) - o, (result.cols-1) - o}
+    };
 
     cv::Mat warpMat(2, 3, CV_32FC1);
     warpMat = cv::getAffineTransform(srcTri, dstTri);
+    cv::warpAffine(image, result, warpMat, result.size());
 
     return result;
 }
@@ -160,4 +170,18 @@ std::vector<cv::Point> QRDetector::simplyfyContour(const std::vector<cv::Point>&
 
 float QRDetector::slope(const cv::Point& p, const cv::Point& q) const {
     return (q.x != p.x) ? (q.y - p.y) / (q.x - p.x) : std::numeric_limits<float>::infinity();
+}
+
+cv::Point QRDetector::intersect(const cv::Point& a, const cv::Point& b, const cv::Point& c) const {
+
+    float m1 = (b.y - a.y) / static_cast<float>(b.x - a.x);
+    float m2 = (c.y - b.y) / static_cast<float>(c.x - b.x);
+
+    float b1 = a.y - (m2 * a.x);
+    float b2 = c.y - (m1 * c.x);
+
+    float x = (b2 - b1) / (m2 - m1);
+    float y = m2 * x + b1;
+
+    return cv::Point(static_cast<int>(x), static_cast<int>(y));
 }

@@ -17,7 +17,7 @@ class QRDetector {
      * in relation to the image they are contained in.
      */
     struct QRCode {
-        cv::Point a, b, c;
+        cv::Point a, b, c, d;
     };
 
 public:
@@ -34,6 +34,7 @@ private:
     cv::Mat normalizeQRCode(const cv::Mat& image, const QRCode& code) const;
     std::vector<cv::Point> simplyfyContour(const std::vector<cv::Point>& contour) const;
     float slope(const cv::Point& p, const cv::Point& q) const;
+    cv::Point intersect(const cv::Point& a, const cv::Point& b, const cv::Point& c) const;
 
 };
 
