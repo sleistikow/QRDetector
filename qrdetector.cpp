@@ -1,5 +1,81 @@
 #include "qrdetector.h"
 
+
+static std::vector<cv::Point> simplifyDP_openCV ( const std::vector<cv::Point>& contourIn, float tolerance )
+{
+
+    std::vector<cv::Point> contourOut;
+
+    //-- copy points.
+
+
+    int numOfPoints = contourIn.size();
+
+    CvPoint* cvpoints;
+    cvpoints = new CvPoint[ numOfPoints ];
+
+    for( int i=0; i<numOfPoints; i++)
+    {
+        int j = i % numOfPoints;
+
+        cvpoints[ i ].x = contourIn[ j ].x;
+        cvpoints[ i ].y = contourIn[ j ].y;
+    }
+
+    //-- create contour.
+
+    CvContour	contour;
+    CvSeqBlock	contour_block;
+
+    cvMakeSeqHeaderForArray
+            (
+                    CV_SEQ_POLYLINE,
+                    sizeof(CvContour),
+                    sizeof(CvPoint),
+                    cvpoints,
+                    numOfPoints,
+                    (CvSeq*)&contour,
+                    &contour_block
+            );
+
+    //-- simplify contour.
+
+    CvMemStorage* storage;
+    storage = cvCreateMemStorage( 1000 );
+
+    CvSeq *result = 0;
+    result = cvApproxPoly
+            (
+                    &contour,
+                    sizeof( CvContour ),
+                    storage,
+                    CV_POLY_APPROX_DP,
+                    cvContourPerimeter( &contour ) * tolerance,
+                    0
+            );
+
+    //-- contour out points.
+
+    contourOut.clear();
+    for( int j=0; j<result->total; j++ )
+    {
+        CvPoint * pt = (CvPoint*)cvGetSeqElem( result, j );
+
+        contourOut.push_back( cv::Point() );
+        contourOut.back().x = (float)pt->x;
+        contourOut.back().y = (float)pt->y;
+    }
+
+    //-- clean up.
+
+    if( storage != NULL )
+        cvReleaseMemStorage( &storage );
+
+    delete[] cvpoints;
+
+    return contourOut;
+}
+
 std::vector<cv::Mat> QRDetector::findQRCodes(const cv::Mat &image) const {
 
     // We convert the input image into greyscale, making it easier to handle.
@@ -35,7 +111,7 @@ std::vector<cv::Mat> QRDetector::findQRCodes(const cv::Mat &image) const {
         }
 
         // We accept each marker with more than 2 'onion'-layers around it.
-        if(parents >= 5) {
+        if(parents >= 5 && contours[i].size() > 0) {
             positionCandidates.push_back(i);
         }
     }
@@ -57,7 +133,10 @@ std::vector<cv::Mat> QRDetector::findQRCodes(const cv::Mat &image) const {
     std::vector<int> rating(positionCandidates.size());
     for(int i=0; i<positionCandidates.size(); i++) {
         rating[i] = 0;
-        contours[positionCandidates[i]] = simplyfyContour(contours[positionCandidates[i]]);
+        contours[positionCandidates[i]] = simplifyDP_openCV(contours[positionCandidates[i]], 0.01f);
+        //contours[positionCandidates[i]] = simplyfyContour(contours[positionCandidates[i]]);
+        //std::cout << contours[positionCandidates[i]].size() << std::endl;
+        //contours[positionCandidates[i]] = contours[positionCandidates[i]];
     }
 
     for(int i=0; i<positionCandidates.size(); i++) {
@@ -93,7 +172,7 @@ std::vector<cv::Mat> QRDetector::findQRCodes(const cv::Mat &image) const {
         int index = positionCandidates[i];
         cv::Scalar color = cv::Scalar(255, 255, 255);
         drawContours( drawing, contours, index, color, 1, 8, hierarchy, 0, cv::Point() );
-        //circle( drawing, centerOfMass[index], 4, color, -1, 8, 0 );
+        circle( drawing, centerOfMass[index], 4, color, -1, 8, 0 );
     }
 
     // Currently, only 1 qr code is supported at a time.
@@ -158,7 +237,7 @@ std::vector<cv::Point> QRDetector::simplyfyContour(const std::vector<cv::Point>&
     for(int i=1; i<contour.size(); i++) {
         float m1 = slope(contour[i], contour[(i+1) % contour.size()]);
 
-        if(std::abs(m1 - m0) > SLOPE_THRESHOLD) {
+        if(std::abs(atan(m1) - atan(m0)) > SLOPE_THRESHOLD) {
             simple.push_back(contour[i]);
         }
 
@@ -169,7 +248,7 @@ std::vector<cv::Point> QRDetector::simplyfyContour(const std::vector<cv::Point>&
 }
 
 float QRDetector::slope(const cv::Point& p, const cv::Point& q) const {
-    return (q.x != p.x) ? (q.y - p.y) / (q.x - p.x) : std::numeric_limits<float>::infinity();
+    return (q.x != p.x) ? (q.y - p.y) / static_cast<float>(q.x - p.x) : std::numeric_limits<float>::infinity();
 }
 
 cv::Point QRDetector::intersect(const cv::Point& a, const cv::Point& b, const cv::Point& c) const {

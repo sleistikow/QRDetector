@@ -10,7 +10,7 @@ class QRDetector {
 
     // The least amount of matching slopes between two markers, one of them being
     static constexpr int MATCHING_THRESHOLD = 200;
-    static constexpr float SLOPE_THRESHOLD = 5.0f;
+    static constexpr float SLOPE_THRESHOLD = 1.f;
 
     /**
      * This struct encodes the positions of the three markers of a QR code,

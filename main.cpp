@@ -4,7 +4,7 @@
 #include "qrdetector.h"
 
 // uncomment the following line to use the webcam
-#define USE_WEBCAM
+//#define USE_WEBCAM
 
 int main(int argc, char** argv) {
 
@@ -15,7 +15,12 @@ int main(int argc, char** argv) {
     // Create a device for capturing images.
     cv::VideoCapture capture(0); // 0 taking the device being found first
 #else
+    // Load the image
     image = cv::imread("qr.jpg");
+    if(image.rows == 0 || image.cols == 0) {
+        std::cout << "Failed loading image" << std::endl;
+        return EXIT_FAILURE;
+    }
 
     /*
      * TODO: The program does not work when the input image is large.
@@ -48,5 +53,5 @@ int main(int argc, char** argv) {
 
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }
