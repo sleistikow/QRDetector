@@ -1,10 +1,24 @@
 #include <string>
+#include <algorithm>
 #include <opencv2/opencv.hpp>
 
 #include "qrdetector.h"
 
 // uncomment the following line to use the webcam
 //#define USE_WEBCAM
+
+// http://docs.opencv.org/2.4/modules/imgproc/doc/geometric_transformations.html#resize
+cv::Mat resizeImage(const cv::Mat& img, int newSize=500) {
+    int maxDim = std::max(img.rows, img.cols);
+    double scale = newSize / (double) maxDim;
+
+    cv::Mat scaledImg(img.rows * scale, img.cols * scale, img.type());
+    
+    int interpolater = (scale > 1) ? CV_INTER_LINEAR : CV_INTER_AREA;
+    cv::resize(img, scaledImg, cv::Size(), scale, scale, interpolater);
+
+    return scaledImg;
+}
 
 int main(int argc, char** argv) {
 
@@ -22,6 +36,8 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
+    image = resizeImage(image);
+    
     /*
      * TODO: The program does not work when the input image is large.
      * In this case scale the image down to a resolution around 800x600,
