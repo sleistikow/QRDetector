@@ -1,5 +1,6 @@
 #include <string>
 #include <algorithm>
+#include <unistd.h>
 #include <opencv2/opencv.hpp>
 
 #include "qrdetector.h"
@@ -12,7 +13,7 @@ cv::Mat resizeImage(const cv::Mat& img, int newSize=500) {
     int maxDim = std::max(img.rows, img.cols);
     double scale = newSize / (double) maxDim;
 
-    cv::Mat scaledImg(img.rows * scale, img.cols * scale, img.type());
+    cv::Mat scaledImg;
     
     int interpolater = (scale > 1) ? CV_INTER_LINEAR : CV_INTER_AREA;
     cv::resize(img, scaledImg, cv::Size(), scale, scale, interpolater);
@@ -21,6 +22,21 @@ cv::Mat resizeImage(const cv::Mat& img, int newSize=500) {
 }
 
 int main(int argc, char** argv) {
+
+    int scaleSize = 500;
+    int opt = 0;
+    
+    while((opt = getopt(argc, argv, "s:")) != -1) {
+        switch (opt) {
+        case 's':
+            scaleSize = atoi(optarg);;
+            break;
+        default: /* '?' */
+            std::cout << "Usage: " << argv[0] << "[-s size]\n" << std::endl;
+            return EXIT_FAILURE;
+        }
+    }
+
 
     // This will hold the captured images.
     cv::Mat image;
@@ -36,7 +52,7 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
-    image = resizeImage(image);
+    image = resizeImage(image, scaleSize);
     
     /*
      * TODO: The program does not work when the input image is large.
