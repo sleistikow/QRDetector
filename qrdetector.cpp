@@ -1,6 +1,6 @@
 #include "qrdetector.h"
 
-
+/*
 static std::vector<cv::Point> simplifyDP_openCV ( const std::vector<cv::Point>& contourIn, float tolerance )
 {
 
@@ -75,8 +75,9 @@ static std::vector<cv::Point> simplifyDP_openCV ( const std::vector<cv::Point>& 
 
     return contourOut;
 }
+*/
 
-std::vector<cv::Mat> QRDetector::findQRCodes(const cv::Mat &image) const {
+cv::Mat QRDetector::findQRCode(const cv::Mat &image) const {
 
     // We convert the input image into greyscale, making it easier to handle.
     cv::Mat gray(image.size(), CV_MAKETYPE(image.depth(), 1));
@@ -89,7 +90,7 @@ std::vector<cv::Mat> QRDetector::findQRCodes(const cv::Mat &image) const {
     // Detect contours inside the edge map and store their hierarchy.
     std::vector<std::vector<cv::Point> > contours;
     std::vector<cv::Vec4i> hierarchy;
-    findContours(edgeMap, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+    cv::findContours(edgeMap, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 
     // For each contour, retrieve the moment and calculate the center of mass.
     std::vector<cv::Point2d> centerOfMass(contours.size());
@@ -116,25 +117,22 @@ std::vector<cv::Mat> QRDetector::findQRCodes(const cv::Mat &image) const {
         }
     }
 
-    // This vector will hold the resulting qr codes.
-    std::vector<cv::Mat> result;
-
     //---- Debug output begin
-    result.push_back(gray);
-    result.push_back(edgeMap);
+    cv::imshow("gray", gray);
+    cv::imshow("edge", edgeMap);
     //---- Debug output end
 
     // Do not continue, if less than three markers have been found.
     if(positionCandidates.size() < 3) {
-        return result;
+        return cv::Mat();
     }
 
     /// Consider storing position candidates...
     std::vector<int> rating(positionCandidates.size());
     for(int i=0; i<positionCandidates.size(); i++) {
         rating[i] = 0;
-        contours[positionCandidates[i]] = simplifyDP_openCV(contours[positionCandidates[i]], 0.01f);
-        //contours[positionCandidates[i]] = simplyfyContour(contours[positionCandidates[i]]);
+        //contours[positionCandidates[i]] = simplifyDP_openCV(contours[positionCandidates[i]], 0.01f);
+        contours[positionCandidates[i]] = simplyfyContour(contours[positionCandidates[i]]);
         //std::cout << contours[positionCandidates[i]].size() << std::endl;
         //contours[positionCandidates[i]] = contours[positionCandidates[i]];
     }
@@ -171,31 +169,24 @@ std::vector<cv::Mat> QRDetector::findQRCodes(const cv::Mat &image) const {
     for(int i = 0; i< positionCandidates.size(); i++) {
         int index = positionCandidates[i];
         cv::Scalar color = cv::Scalar(255, 255, 255);
-        drawContours( drawing, contours, index, color, 1, 8, hierarchy, 0, cv::Point() );
+        cv::drawContours( drawing, contours, index, color, 1, 8, hierarchy, 0, cv::Point() );
         circle( drawing, centerOfMass[index], 4, color, -1, 8, 0 );
     }
 
     // Currently, only 1 qr code is supported at a time.
     // This approach simply takes the first three markers, it can find.
-    std::vector<QRCode> codes;
-
     QRCode tmp;
     tmp.a = centerOfMass[positionCandidates[0]];
     tmp.b = centerOfMass[positionCandidates[1]];
     tmp.c = centerOfMass[positionCandidates[2]];
     tmp.d = intersect(tmp.b, tmp.c, tmp.a);
 
-    codes.push_back(tmp);
-
-
-    for(const QRCode& code : codes) {
-        result.push_back(normalizeQRCode(image, code));
-    }
-
     circle(drawing, tmp.a, 5, cv::Scalar(255, 0, 0), -1, 8, 0);
     circle(drawing, tmp.b, 5, cv::Scalar(0, 255, 0), -1, 8, 0);
     circle(drawing, tmp.c, 5, cv::Scalar(0, 0, 255), -1, 8, 0);
     circle(drawing, tmp.d, 5, cv::Scalar(255, 0, 255), -1, 8, 0);
+
+    cv::imshow("drawing", drawing);
 
     /*
     for(int i=0; i<rating.size(); i++) {
@@ -204,8 +195,8 @@ std::vector<cv::Mat> QRDetector::findQRCodes(const cv::Mat &image) const {
         }
     }
     */
-
-    result.push_back(drawing);
+    // This will hold the final QR code.
+    cv::Mat result = normalizeQRCode(image, tmp);
 
     return result;
 }
@@ -230,20 +221,50 @@ cv::Mat QRDetector::normalizeQRCode(const cv::Mat& image, const QRCode& code) co
     return result;
 }
 
+static int distanceSQ(const cv::Point& p0, const cv::Point& p1) {
+    cv::Point d = p1 - p0;
+    return d.dot(d);
+}
+
 std::vector<cv::Point> QRDetector::simplyfyContour(const std::vector<cv::Point>& contour) const {
     std::vector<cv::Point> simple;
 
-    float m0 = slope(contour[0], contour[1]);
-    for(int i=1; i<contour.size(); i++) {
-        float m1 = slope(contour[i], contour[(i+1) % contour.size()]);
+    cv::convexHull(contour, simple, false);
+    if(simple.size() > 4) {
+        //std::cout << "Too large: " << simple.size() << std::endl;
+        //std::vector<cv::Point> simpler;
 
-        if(std::abs(atan(m1) - atan(m0)) > SLOPE_THRESHOLD) {
-            simple.push_back(contour[i]);
+        // Ansatz 1:
+        // Prüfe den Abstand zweier aufeinanderfolgender Punkte.
+        // Ist dieser deutlich (!) kleiner als der zu anderen Punkten, lösche ihn.
+
+        // Ansatz 2:
+        // Siehe einen Punkt aus contour als Startpunkt an
+        // Suche den Punkt mit dem größten Abstand, wenn dieser Punkt zuvor noch nicht gefunden wurde.
+/*
+        std::map<int, std::pair<int, int> > result;
+        for(int k=0; k<contour.size(); k++) {
+            int maxDist = 0;
+            int idx = 0;
+            for(int i=0; i<contour.size(); i++) {
+                int d = distanceSQ(contour[0], contour[i]);
+                if(d > maxDist) {
+                    maxDist = d;
+                    idx = i;
+                }
+            }
+            result[maxDist] = std::make_pair(k, idx);
         }
 
-        m0 = m1;
+        auto first = result.begin();
+        auto second = ++result.begin();
+        simple.push_back(contour[(*first).second.first]);
+        simple.push_back(contour[(*second).second.first]);
+        simple.push_back(contour[(*first).second.second]);
+        simple.push_back(contour[(*second).second.second]);
+*/
+        //simple = simpler;
     }
-
     return simple;
 }
 

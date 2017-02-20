@@ -23,11 +23,11 @@ class QRDetector {
 public:
 
     /**
-     * Finds QR codes and normalizes them.
+     * Finds QR code and normalize it.
      * @param image Image containing the one or more QR codes.
      * @return a list holding the normalized QR Codes.
      */
-    std::vector<cv::Mat> findQRCodes(const cv::Mat& image) const;
+    cv::Mat findQRCode(const cv::Mat& image) const;
 
 private:
 
