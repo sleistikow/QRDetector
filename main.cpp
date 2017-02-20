@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
 
     // Parse command line arguments
     const char* input = "qr.jpg";
-    const char* output = "out.jpg";
+    const char* output = "out.png";
     if(argc > 2) {
         input = argv[1];
         output = argv[2];
@@ -99,6 +99,12 @@ int main(int argc, char** argv) {
 #else
 
     cv::Mat qr = detector.findQRCode(image);
+    if(qr.cols == 0 || qr.rows == 0) {
+        std::cout << "QR Code not found!" << std::endl;
+        qr = cv::Mat::zeros(1, 1, CV_8UC1);
+    } else
+        std::cout << "QR Code found!" << std::endl;
+
     if(cv::imwrite(output, qr))
         std::cout << "QR Code successfully written!" << std::endl;
     else
