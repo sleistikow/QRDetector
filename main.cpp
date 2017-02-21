@@ -9,13 +9,15 @@
 /// Preprocessor definition section
 ///
 //#define MODE_WEBCAM // uncomment this line to use webcam
-#define MODE_RELEASE // uncomment this line for evaluation build
+//#define MODE_RELEASE // uncomment this line for evaluation build
 //////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////
 /// Constants definition section
 ///
 static const int DEFAULT_MAX_IMAGE_SIZE = 500;
+static const char* DEFAULT_INPUT = "qr.jpg";
+static const char* DEFAULT_OUTPUT = "out.png";
 //////////////////////////////////////////////////////
 
 #if defined(MODE_WEBCAM) && defined(MODE_RELEASE)
@@ -52,8 +54,8 @@ int main(int argc, char** argv) {
     }
 
     // Parse command line arguments
-    const char* input = "qr.jpg";
-    const char* output = "out.png";
+    const char* input = DEFAULT_INPUT;
+    const char* output = DEFAULT_OUTPUT;
     if(argc > 2) {
         input = argv[1];
         output = argv[2];
@@ -62,22 +64,23 @@ int main(int argc, char** argv) {
     // This will hold the captured images.
     cv::Mat image;
 
+    // Initialize an instance of our QR Detector.
+    QRDetector detector;
+
 #ifdef MODE_WEBCAM
     // Create a device for capturing images.
-    cv::VideoCapture capture(0); // 0 taking the device being found first
+    cv::VideoCapture capture(0); // 0 - taking the first device being found
 #else
-    // Load the image
+    // Load the image.
     image = cv::imread(input);
     if(image.rows == 0 || image.cols == 0) {
         std::cout << "Failed loading image!" << std::endl;
         return EXIT_FAILURE;
     }
 
+    // Resize the image.
     image = resizeImage(image, scaleSize);
 #endif
-
-    // Initialize an instance of our QR Detector.
-    QRDetector detector;
 
 #ifndef MODE_RELEASE
     // Main Loop, quit on keypress.
@@ -87,13 +90,12 @@ int main(int argc, char** argv) {
         // Capture a new image.
         capture >> image;
 #endif
-
         // Extract the qr code and show the result.
         cv::Mat result = detector.findQRCode(image);
         if(result.cols > 0 && result.rows > 0)
-            cv::imshow("QRCode", result);
-        //else
-        //    cv::destroyWindow("QRCode");
+            cv::imshow("result", result);
+        else
+            cv::imshow("input", image);
     }
 
 #else

@@ -1,90 +1,13 @@
 #include "qrdetector.h"
 
-/*
-static std::vector<cv::Point> simplifyDP_openCV ( const std::vector<cv::Point>& contourIn, float tolerance )
-{
-
-    std::vector<cv::Point> contourOut;
-
-    //-- copy points.
-
-
-    int numOfPoints = contourIn.size();
-
-    CvPoint* cvpoints;
-    cvpoints = new CvPoint[ numOfPoints ];
-
-    for( int i=0; i<numOfPoints; i++)
-    {
-        int j = i % numOfPoints;
-
-        cvpoints[ i ].x = contourIn[ j ].x;
-        cvpoints[ i ].y = contourIn[ j ].y;
-    }
-
-    //-- create contour.
-
-    CvContour	contour;
-    CvSeqBlock	contour_block;
-
-    cvMakeSeqHeaderForArray
-            (
-                    CV_SEQ_POLYLINE,
-                    sizeof(CvContour),
-                    sizeof(CvPoint),
-                    cvpoints,
-                    numOfPoints,
-                    (CvSeq*)&contour,
-                    &contour_block
-            );
-
-    //-- simplify contour.
-
-    CvMemStorage* storage;
-    storage = cvCreateMemStorage( 1000 );
-
-    CvSeq *result = 0;
-    result = cvApproxPoly
-            (
-                    &contour,
-                    sizeof( CvContour ),
-                    storage,
-                    CV_POLY_APPROX_DP,
-                    cvContourPerimeter( &contour ) * tolerance,
-                    0
-            );
-
-    //-- contour out points.
-
-    contourOut.clear();
-    for( int j=0; j<result->total; j++ )
-    {
-        CvPoint * pt = (CvPoint*)cvGetSeqElem( result, j );
-
-        contourOut.push_back( cv::Point() );
-        contourOut.back().x = (float)pt->x;
-        contourOut.back().y = (float)pt->y;
-    }
-
-    //-- clean up.
-
-    if( storage != NULL )
-        cvReleaseMemStorage( &storage );
-
-    delete[] cvpoints;
-
-    return contourOut;
-}
-*/
-
 cv::Mat QRDetector::findQRCode(const cv::Mat &image) const {
 
     // We convert the input image into greyscale, making it easier to handle.
-    cv::Mat gray(image.size(), CV_MAKETYPE(image.depth(), 1));
-    cvtColor(image,gray,CV_RGB2GRAY);
+    cv::Mat gray(image.size(), CV_8UC1);
+    cvtColor(image, gray, CV_RGB2GRAY);
 
     // Apply the Canny operator and store the result in a new image.
-    cv::Mat edgeMap(image.size(), CV_MAKETYPE(image.depth(), 1));
+    cv::Mat edgeMap(image.size(), CV_8UC1);
     Canny(gray, edgeMap, CANNY_LOWER_THRESHOLD , CANNY_UPPER_THRESHOLD);
 
     // Detect contours inside the edge map and store their hierarchy.
@@ -117,11 +40,6 @@ cv::Mat QRDetector::findQRCode(const cv::Mat &image) const {
         }
     }
 
-    //---- Debug output begin
-    cv::imshow("gray", gray);
-    cv::imshow("edge", edgeMap);
-    //---- Debug output end
-
     // Do not continue, if less than three markers have been found.
     if(positionCandidates.size() < 3) {
         return cv::Mat();
@@ -131,10 +49,8 @@ cv::Mat QRDetector::findQRCode(const cv::Mat &image) const {
     std::vector<int> rating(positionCandidates.size());
     for(int i=0; i<positionCandidates.size(); i++) {
         rating[i] = 0;
-        //contours[positionCandidates[i]] = simplifyDP_openCV(contours[positionCandidates[i]], 0.01f);
         contours[positionCandidates[i]] = simplyfyContour(contours[positionCandidates[i]]);
         //std::cout << contours[positionCandidates[i]].size() << std::endl;
-        //contours[positionCandidates[i]] = contours[positionCandidates[i]];
     }
 
     for(int i=0; i<positionCandidates.size(); i++) {
@@ -165,13 +81,21 @@ cv::Mat QRDetector::findQRCode(const cv::Mat &image) const {
     std::sort(rating.begin(), rating.end());
 
     // Just for now, draw the contours being found and filtered before.
-    cv::Mat drawing = cv::Mat::zeros(edgeMap.size(), CV_MAKETYPE(edgeMap.depth(), 3));
+    cv::Mat drawing = image.clone();//cv::Mat::zeros(edgeMap.size(), CV_MAKETYPE(edgeMap.depth(), 3));
     for(int i = 0; i< positionCandidates.size(); i++) {
         int index = positionCandidates[i];
         cv::Scalar color = cv::Scalar(255, 255, 255);
         cv::drawContours( drawing, contours, index, color, 1, 8, hierarchy, 0, cv::Point() );
         circle( drawing, centerOfMass[index], 4, color, -1, 8, 0 );
     }
+
+    /*
+    for(int i=0; i<rating.size(); i++) {
+        if(rating[i] > MATCHING_THRESHOLD) {
+            circle(drawing, centerOfMass[positionCandidates[i]], 5, cv::Scalar(255, 0, 0), -1, 8, 0);
+        }
+    }
+    */
 
     // Currently, only 1 qr code is supported at a time.
     // This approach simply takes the first three markers, it can find.
@@ -186,19 +110,14 @@ cv::Mat QRDetector::findQRCode(const cv::Mat &image) const {
     circle(drawing, tmp.c, 5, cv::Scalar(0, 0, 255), -1, 8, 0);
     circle(drawing, tmp.d, 5, cv::Scalar(255, 0, 255), -1, 8, 0);
 
-    cv::imshow("drawing", drawing);
+    //---- Debug output begin
+    //cv::imshow("gray", gray);
+    //cv::imshow("edge", edgeMap);
+    cv::imshow("input", drawing);
+    //---- Debug output end
 
-    /*
-    for(int i=0; i<rating.size(); i++) {
-        if(rating[i] > MATCHING_THRESHOLD) {
-            circle(drawing, centerOfMass[positionCandidates[i]], 5, cv::Scalar(255, 0, 0), -1, 8, 0);
-        }
-    }
-    */
-    // This will hold the final QR code.
-    cv::Mat result = normalizeQRCode(image, tmp);
-
-    return result;
+    // Return the normalized result.
+    return normalizeQRCode(image, tmp);
 }
 
 cv::Mat QRDetector::normalizeQRCode(const cv::Mat& image, const QRCode& code) const {
