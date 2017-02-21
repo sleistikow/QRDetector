@@ -30,3 +30,11 @@
 
 # Project files
 .idea
+
+#Tex files
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.pdf
