@@ -1,14 +1,14 @@
 #include "qrdetector.h"
 
-cv::Mat QRDetector::findQRCode(const cv::Mat &image) const {
+cv::Mat QRDetector::findQRCode(const cv::Mat &image) {
 
     // We convert the input image into greyscale, making it easier to handle.
     cv::Mat gray(image.size(), CV_8UC1);
-    cvtColor(image, gray, CV_RGB2GRAY);
+    cv::cvtColor(image, gray, CV_RGB2GRAY);
 
     // Apply the Canny operator and store the result in a new image.
-    cv::Mat edgeMap(image.size(), CV_8UC1);
-    Canny(gray, edgeMap, CANNY_LOWER_THRESHOLD , CANNY_UPPER_THRESHOLD);
+    cv::Mat edgeMap;//(image.size(), CV_8UC1);
+    cv::Canny(gray, edgeMap, CANNY_LOWER_THRESHOLD , CANNY_UPPER_THRESHOLD);
 
     // Detect contours inside the edge map and store their hierarchy.
     std::vector<std::vector<cv::Point> > contours;
@@ -17,7 +17,7 @@ cv::Mat QRDetector::findQRCode(const cv::Mat &image) const {
 
     // For each contour, retrieve the moment and calculate the center of mass.
     std::vector<cv::Point2d> centerOfMass(contours.size());
-    for( int i = 0; i < contours.size(); i++ ) {
+    for(int i = 0; i<contours.size(); i++) {
         // retrieve the moments
         cv::Moments m = moments(contours[i], false);
         // calculate the mass center of the moments
@@ -41,103 +41,48 @@ cv::Mat QRDetector::findQRCode(const cv::Mat &image) const {
     }
 
     // Do not continue, if less than three markers have been found.
-    if(positionCandidates.size() < 3) {
+    if(positionCandidates.size() != 3) {
+        if(positionCandidates.size() > 3)
+            std::cout << "More than 3 markers have been found! Only one QR Code is supported at a time." << std::endl;
         return cv::Mat();
     }
 
-    /// Consider storing position candidates...
-    std::vector<int> rating(positionCandidates.size());
-    for(int i=0; i<positionCandidates.size(); i++) {
-        rating[i] = 0;
-        contours[positionCandidates[i]] = simplyfyContour(contours[positionCandidates[i]]);
-        //std::cout << contours[positionCandidates[i]].size() << std::endl;
-    }
+    // Create inpainting image.
+    inpainting = image.clone();
 
-    for(int i=0; i<positionCandidates.size(); i++) {
-        const std::vector<cv::Point>& contour0 = contours[i];
-        for(int j=i+1; j<positionCandidates.size(); j++) {
-            const std::vector<cv::Point>& contour1 = contours[j];
-            for(int k=0; k<contour0.size(); k++) {
-                cv::Point p0 = contour0[k];
-                cv::Point p1 = contour0[(k+1) % contour0.size()];
-                float mP = slope(p0, p1);
+    // Simplify the retrieved contours and prepare enclosing square calculation.
+    std::vector<cv::Point> corners;
+    for(int i : positionCandidates) {
 
-                for(int l=0; l<contour1.size(); l++) {
-                    cv::Point q0 = contour1[l];
-                    cv::Point q1 = contour1[(l+1) % contour1.size()];
-                    float mQ = slope(q0, q1);
+        // Simplify contour.
+        contours[i] = simplyfyContour(contours[i]);
 
-                    // In case the slopes do match, we count that as indicator.
-                    if(std::abs(mP - mQ) < FLT_EPSILON || mP == mQ) {
-                        rating[i]++;
-                        rating[j]++;
-                    }
-                }
-            }
-        }
-    }
-
-    // Sort rating in order to determine the important markers.
-    std::sort(rating.begin(), rating.end());
-
-    // Just for now, draw the contours being found and filtered before.
-    cv::Mat drawing = image.clone();//cv::Mat::zeros(edgeMap.size(), CV_MAKETYPE(edgeMap.depth(), 3));
-    for(int i = 0; i< positionCandidates.size(); i++) {
-        int index = positionCandidates[i];
+        // Draw the contours being found.
         cv::Scalar color = cv::Scalar(255, 255, 255);
-        cv::drawContours( drawing, contours, index, color, 1, 8, hierarchy, 0, cv::Point() );
-        circle( drawing, centerOfMass[index], 4, color, -1, 8, 0 );
-    }
+        cv::drawContours(inpainting, contours, i, color, 2, 8, hierarchy, 0);
+        cv::circle(inpainting, centerOfMass[i], 4, color, -1, 8, 0);
 
-    /*
-    for(int i=0; i<rating.size(); i++) {
-        if(rating[i] > MATCHING_THRESHOLD) {
-            circle(drawing, centerOfMass[positionCandidates[i]], 5, cv::Scalar(255, 0, 0), -1, 8, 0);
-        }
+        // Add all vertices to the global square contour.
+        for(int j=0; j<contours[i].size(); j++)
+            corners.push_back(contours[i][j]);
     }
-    */
 
     // Currently, only 1 qr code is supported at a time.
     // This approach simply takes the first three markers, it can find.
-    QRCode tmp;
-    tmp.a = centerOfMass[positionCandidates[0]];
-    tmp.b = centerOfMass[positionCandidates[1]];
-    tmp.c = centerOfMass[positionCandidates[2]];
-    tmp.d = intersect(tmp.b, tmp.c, tmp.a);
+    QRCode code = extractQRCode(corners);
 
-    circle(drawing, tmp.a, 5, cv::Scalar(255, 0, 0), -1, 8, 0);
-    circle(drawing, tmp.b, 5, cv::Scalar(0, 255, 0), -1, 8, 0);
-    circle(drawing, tmp.c, 5, cv::Scalar(0, 0, 255), -1, 8, 0);
-    circle(drawing, tmp.d, 5, cv::Scalar(255, 0, 255), -1, 8, 0);
+    // Align code.
+    cv::Mat imAligned = alignQRCode(gray, code);
 
     //---- Debug output begin
     //cv::imshow("gray", gray);
     //cv::imshow("edge", edgeMap);
-    cv::imshow("input", drawing);
+    //cv::imshow("aligned", imAligned);
+    cv::imshow("input", inpainting);
     //---- Debug output end
 
     // Return the normalized result.
-    return normalizeQRCode(image, tmp);
-}
-
-cv::Mat QRDetector::normalizeQRCode(const cv::Mat& image, const QRCode& code) const {
-
-    cv::Mat result = cv::Mat::zeros(400, 400, image.type());
-
-    cv::Point2f srcTri[] = {code.c, code.b, code.a, code.d};
-    float o = 0.15f * result.rows;
-    cv::Point2f dstTri[] = {
-            {0.0f + o, 0.0f + o},
-            {(result.rows-1) - o, 0.0f + o},
-            {0.0f + o, result.cols-1 - o},
-            {(result.rows-1) - o, (result.cols-1) - o}
-    };
-
-    cv::Mat warpMat(2, 3, CV_32FC1);
-    warpMat = cv::getAffineTransform(srcTri, dstTri);
-    cv::warpAffine(image, result, warpMat, result.size());
-
-    return result;
+    return normalizeQRCode(imAligned, code);
 }
 
 static int distanceSQ(const cv::Point& p0, const cv::Point& p1) {
@@ -145,62 +90,132 @@ static int distanceSQ(const cv::Point& p0, const cv::Point& p1) {
     return d.dot(d);
 }
 
+QRDetector::QRCode QRDetector::extractQRCode(const std::vector<cv::Point>& corners) {
+
+    // Simplify square to determine enclosing rect.
+    std::vector<std::vector<cv::Point>> squareContour(1);
+    std::vector<cv::Point>& square = squareContour[0];
+    cv::convexHull(corners, square, false); // Note: counter-clockwise
+    cv::approxPolyDP(square, square, 5.0, true);
+    //cv::convexHull(square, square, false); // Note: counter-clockwise
+    cv::drawContours(inpainting, squareContour, 0, cv::Scalar(255, 0, 0), 2, 8, -1, 0);
+
+    // Find the corner just after the lower left marker, being determined by the longest distance.
+    int start = 0;
+    int maxDist = 0;
+    for(int i=0; i<square.size(); i++) {
+        // TODO: does not always work properly!
+        int dist = distanceSQ(square[i], square[(i+1)%square.size()]);
+        if(dist > maxDist) {
+            maxDist = dist;
+            start = i;
+        }
+    }
+
+    // Get helper points.
+    cv::Point helpA = square[(start + 1) % square.size()];
+    cv::Point helpC = square[(start + 0) % square.size()];
+
+    // Build the QR code.
+    QRCode code;
+    code.a = square[(start + 2) % square.size()];
+    code.b = square[(start + 3) % square.size()];
+    code.c = square[(start + 4) % square.size()];
+    code.d = intersect(code.a, helpA, code.c, helpC);
+
+    // Draw the selected corners for debug assessment.
+    cv::circle(inpainting, code.a, 4, cv::Scalar(255, 0, 0), -1, 8, 0);
+    cv::circle(inpainting, code.b, 4, cv::Scalar(0, 255, 0), -1, 8, 0);
+    cv::circle(inpainting, code.c, 4, cv::Scalar(0, 0, 255), -1, 8, 0);
+    cv::circle(inpainting, code.d, 4, cv::Scalar(255, 255, 255), -1, 8, 0);
+
+    // Determine cell size in image space.
+    //TODO: pretend the outer length is 7 - true??
+    code.cellsize = (sqrtf(distanceSQ(code.a, helpA)) + sqrtf(distanceSQ(code.c, helpC))) / (2.0f * 7.0f);
+
+    // Done here.
+    return code;
+}
+
+cv::Mat QRDetector::alignQRCode(const cv::Mat& image, const QRCode& code) const {
+
+    cv::Mat result(QR_BUFFER_SIZE, QR_BUFFER_SIZE, image.type());
+    const float size = QR_BUFFER_SIZE;
+
+    cv::Point2f srcQuad[] = {code.a, code.b, code.c, code.d};
+    cv::Point2f dstQuad[] = {
+            {0.0f,  size},
+            {0.0f,  0.0f},
+            {size,  0.0f},
+            {size,  size},
+    };
+
+    cv::Mat warpMat(2, 3, CV_32FC1);
+    warpMat = cv::getAffineTransform(srcQuad, dstQuad);
+    cv::warpAffine(image, result, warpMat, result.size());
+
+    return result;
+}
+
+cv::Mat QRDetector::normalizeQRCode(const cv::Mat& image, const QRCode& code) const {
+
+    // First, convert into binary image.
+    cv::Mat binary;
+    //cv::threshold(image, result, BINARY_THRESHOLD, 255, cv::THRESH_BINARY);
+    cv::adaptiveThreshold(image, binary, 255.0, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY, 101, 1.0); // HACK: ugly code
+
+    /*
+    int size = static_cast<int>((image.rows + image.cols) / (2.0f * code.cellsize));
+    cv::resize(binary, binary, cv::Size(size, size), 0.0, 0.0, CV_INTER_AREA);
+    return binary;
+    /*/
+
+    // Determine code size.
+    int size = static_cast<int>(0.5f * QR_BUFFER_SIZE / code.cellsize); // FIXME: Why is it we need to mult by 0.5 ??
+    float d = static_cast<float>(QR_BUFFER_SIZE) / size;
+
+    cv::Mat final = cv::Mat::zeros(size, size, CV_8UC1);
+    for(int r=0; r<size; r++) {
+        for(int c=0; c<size; c++) {
+            int x = static_cast<int>(d * (r + 0.5f));
+            int y = static_cast<int>(d * (c + 0.5f));
+            if(binary.at<uchar>(x, y) > 0)
+                final.at<uchar>(r, c) = 255;
+        }
+    }
+
+    return final;
+    //*/
+}
+
 std::vector<cv::Point> QRDetector::simplyfyContour(const std::vector<cv::Point>& contour) const {
     std::vector<cv::Point> simple;
 
+    // Convex hull for a first approx result.
     cv::convexHull(contour, simple, false);
-    if(simple.size() > 4) {
-        //std::cout << "Too large: " << simple.size() << std::endl;
-        //std::vector<cv::Point> simpler;
 
-        // Ansatz 1:
-        // Prüfe den Abstand zweier aufeinanderfolgender Punkte.
-        // Ist dieser deutlich (!) kleiner als der zu anderen Punkten, lösche ihn.
-
-        // Ansatz 2:
-        // Siehe einen Punkt aus contour als Startpunkt an
-        // Suche den Punkt mit dem größten Abstand, wenn dieser Punkt zuvor noch nicht gefunden wurde.
-/*
-        std::map<int, std::pair<int, int> > result;
-        for(int k=0; k<contour.size(); k++) {
-            int maxDist = 0;
-            int idx = 0;
-            for(int i=0; i<contour.size(); i++) {
-                int d = distanceSQ(contour[0], contour[i]);
-                if(d > maxDist) {
-                    maxDist = d;
-                    idx = i;
-                }
-            }
-            result[maxDist] = std::make_pair(k, idx);
-        }
-
-        auto first = result.begin();
-        auto second = ++result.begin();
-        simple.push_back(contour[(*first).second.first]);
-        simple.push_back(contour[(*second).second.first]);
-        simple.push_back(contour[(*first).second.second]);
-        simple.push_back(contour[(*second).second.second]);
-*/
-        //simple = simpler;
+    // Simplify further, until 4 corners have been extracted.
+    double epsilon = SIMPLFIICATION_START_EPSILON;
+    while(simple.size() > 4) {
+        cv::approxPolyDP(simple, simple, epsilon, true);
+        epsilon *= 2.0;
     }
     return simple;
 }
 
-float QRDetector::slope(const cv::Point& p, const cv::Point& q) const {
-    return (q.x != p.x) ? (q.y - p.y) / static_cast<float>(q.x - p.x) : std::numeric_limits<float>::infinity();
-}
+cv::Point QRDetector::intersect(const cv::Point& a0, const cv::Point& a1, const cv::Point& c0, const cv::Point& c1) const {
 
-cv::Point QRDetector::intersect(const cv::Point& a, const cv::Point& b, const cv::Point& c) const {
+    // Calculate slopes.
+    double mA = (a1.y - a0.y) / static_cast<double>(a1.x - a0.x);
+    double mC = (c1.y - c0.y) / static_cast<double>(c1.x - c0.x);
 
-    float m1 = (b.y - a.y) / static_cast<float>(b.x - a.x);
-    float m2 = (c.y - b.y) / static_cast<float>(c.x - b.x);
+    // Calculate axis intersection.
+    double bA = a0.y - (mA * a0.x);
+    double bC = c0.y - (mC * c0.x);
 
-    float b1 = a.y - (m2 * a.x);
-    float b2 = c.y - (m1 * c.x);
-
-    float x = (b2 - b1) / (m2 - m1);
-    float y = m2 * x + b1;
+    // Calculate line intersection point.
+    double x = (bC - bA) / (mA - mC);
+    double y = mC * x + bC;
 
     return cv::Point(static_cast<int>(x), static_cast<int>(y));
 }

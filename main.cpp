@@ -9,7 +9,7 @@
 /// Preprocessor definition section
 ///
 //#define MODE_WEBCAM // uncomment this line to use webcam
-//#define MODE_RELEASE // uncomment this line for evaluation build
+#define MODE_RELEASE // uncomment this line for evaluation build
 //////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////
@@ -73,13 +73,13 @@ int main(int argc, char** argv) {
 #else
     // Load the image.
     image = cv::imread(input);
-    if(image.rows == 0 || image.cols == 0) {
+    if(image.empty()) {
         std::cout << "Failed loading image!" << std::endl;
         return EXIT_FAILURE;
     }
 
-    // Resize the image.
-    image = resizeImage(image, scaleSize);
+    // Resize the image. FIXME: not necessary any longer?
+    //image = resizeImage(image, scaleSize);
 #endif
 
 #ifndef MODE_RELEASE
@@ -92,7 +92,7 @@ int main(int argc, char** argv) {
 #endif
         // Extract the qr code and show the result.
         cv::Mat result = detector.findQRCode(image);
-        if(result.cols > 0 && result.rows > 0)
+        if(!result.empty())
             cv::imshow("result", result);
         else
             cv::imshow("input", image);
@@ -101,13 +101,18 @@ int main(int argc, char** argv) {
 #else
 
     cv::Mat qr = detector.findQRCode(image);
-    if(qr.cols == 0 || qr.rows == 0) {
+    if(qr.empty()) {
         std::cout << "QR Code not found!" << std::endl;
         qr = cv::Mat::zeros(1, 1, CV_8UC1);
     } else
         std::cout << "QR Code found!" << std::endl;
 
-    if(cv::imwrite(output, qr))
+    // Deactivate compression.
+    std::vector<int> params;
+    params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+    params.push_back(0);
+
+    if(cv::imwrite(output, qr, params))
         std::cout << "QR Code successfully written!" << std::endl;
     else
         std::cout << "Writing QR Code failed!" << std::endl;
