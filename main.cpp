@@ -15,7 +15,7 @@
 //////////////////////////////////////////////////////
 /// Constants definition section
 ///
-static const int DEFAULT_MAX_IMAGE_SIZE = 500;
+static const int DEFAULT_IMAGE_UPSCALE = 1000;
 static const char* DEFAULT_INPUT = "qr.jpg";
 static const char* DEFAULT_OUTPUT = "out.png";
 //////////////////////////////////////////////////////
@@ -39,13 +39,13 @@ cv::Mat resizeImage(const cv::Mat& img, int newSize) {
 
 int main(int argc, char** argv) {
 
-    int scaleSize = DEFAULT_MAX_IMAGE_SIZE;
+    int size = DEFAULT_IMAGE_UPSCALE;
 
     int opt = 0;
     while((opt = getopt(argc, argv, "s:")) != -1) {
         switch (opt) {
         case 's':
-            scaleSize = atoi(optarg);
+            size = atoi(optarg);
             break;
         default: /* '?' */
             std::cout << "Usage: " << argv[0] << "[-s size]\n" << std::endl;
@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
     }
 
     // Resize the image. FIXME: not necessary any longer?
-    //image = resizeImage(image, scaleSize);
+    //image = resizeImage(image, size);
 #endif
 
 #ifndef MODE_RELEASE
@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
         capture >> image;
 #endif
         // Extract the qr code and show the result.
-        cv::Mat result = detector.findQRCode(image);
+        cv::Mat result = detector.detectQRCode(image);
         if(!result.empty())
             cv::imshow("result", result);
         else
@@ -100,7 +100,7 @@ int main(int argc, char** argv) {
 
 #else
 
-    cv::Mat qr = detector.findQRCode(image);
+    cv::Mat qr = detector.detectQRCode(image);
     if(qr.empty()) {
         std::cout << "QR Code not found!" << std::endl;
         qr = cv::Mat::zeros(1, 1, CV_8UC1);

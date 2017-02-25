@@ -34,12 +34,12 @@ public:
      * @param image Image containing the one or more QR codes.
      * @return a list holding the normalized QR Codes.
      */
-    cv::Mat findQRCode(const cv::Mat& image);
+    cv::Mat detectQRCode(const cv::Mat& image);
 
 private:
 
     QRCode extractQRCode(const std::vector<cv::Point>& corners);
-    cv::Mat alignQRCode(const cv::Mat& image, const QRCode& code) const;
+    cv::Mat alignQRCode(const cv::Mat& image, QRCode& code, const std::vector<cv::Point>& corners) const;
     cv::Mat normalizeQRCode(const cv::Mat& image, const QRCode& code) const;
     std::vector<cv::Point> simplyfyContour(const std::vector<cv::Point>& contour) const;
     cv::Point intersect(const cv::Point& a0, const cv::Point& a1, const cv::Point& c0, const cv::Point& c1) const;

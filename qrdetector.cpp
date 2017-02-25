@@ -1,10 +1,14 @@
 #include "qrdetector.h"
 
-cv::Mat QRDetector::findQRCode(const cv::Mat &image) {
+cv::Mat QRDetector::detectQRCode(const cv::Mat &image) {
 
     // We convert the input image into greyscale, making it easier to handle.
     cv::Mat gray(image.size(), CV_8UC1);
     cv::cvtColor(image, gray, CV_RGB2GRAY);
+
+    // TODO: binary afterwards?
+    cv::adaptiveThreshold(gray, gray, 255.0, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY, 101, 1.0); // HACK: ugly params
+    //cv::medianBlur(gray, gray, 5); // May be helpful in special cases
 
     // Apply the Canny operator and store the result in a new image.
     cv::Mat edgeMap;//(image.size(), CV_8UC1);
@@ -18,9 +22,7 @@ cv::Mat QRDetector::findQRCode(const cv::Mat &image) {
     // For each contour, retrieve the moment and calculate the center of mass.
     std::vector<cv::Point2d> centerOfMass(contours.size());
     for(int i = 0; i<contours.size(); i++) {
-        // retrieve the moments
-        cv::Moments m = moments(contours[i], false);
-        // calculate the mass center of the moments
+        cv::Moments m = cv::moments(contours[i], false);
         centerOfMass[i] = cv::Point2d(m.m10/m.m00 , m.m01/m.m00);
     }
 
@@ -72,7 +74,10 @@ cv::Mat QRDetector::findQRCode(const cv::Mat &image) {
     QRCode code = extractQRCode(corners);
 
     // Align code.
-    cv::Mat imAligned = alignQRCode(gray, code);
+    cv::Mat imAligned = alignQRCode(image, code, corners);
+
+    // Normalize code.
+    cv::Mat imNormalized = normalizeQRCode(imAligned, code);
 
     //---- Debug output begin
     //cv::imshow("gray", gray);
@@ -82,7 +87,7 @@ cv::Mat QRDetector::findQRCode(const cv::Mat &image) {
     //---- Debug output end
 
     // Return the normalized result.
-    return normalizeQRCode(imAligned, code);
+    return imNormalized;
 }
 
 static int distanceSQ(const cv::Point& p0, const cv::Point& p1) {
@@ -97,7 +102,6 @@ QRDetector::QRCode QRDetector::extractQRCode(const std::vector<cv::Point>& corne
     std::vector<cv::Point>& square = squareContour[0];
     cv::convexHull(corners, square, false); // Note: counter-clockwise
     cv::approxPolyDP(square, square, 5.0, true);
-    //cv::convexHull(square, square, false); // Note: counter-clockwise
     cv::drawContours(inpainting, squareContour, 0, cv::Scalar(255, 0, 0), 2, 8, -1, 0);
 
     // Find the corner just after the lower left marker, being determined by the longest distance.
@@ -113,8 +117,8 @@ QRDetector::QRCode QRDetector::extractQRCode(const std::vector<cv::Point>& corne
     }
 
     // Get helper points.
-    cv::Point helpA = square[(start + 1) % square.size()];
     cv::Point helpC = square[(start + 0) % square.size()];
+    cv::Point helpA = square[(start + 1) % square.size()];
 
     // Build the QR code.
     QRCode code;
@@ -129,15 +133,11 @@ QRDetector::QRCode QRDetector::extractQRCode(const std::vector<cv::Point>& corne
     cv::circle(inpainting, code.c, 4, cv::Scalar(0, 0, 255), -1, 8, 0);
     cv::circle(inpainting, code.d, 4, cv::Scalar(255, 255, 255), -1, 8, 0);
 
-    // Determine cell size in image space.
-    //TODO: pretend the outer length is 7 - true??
-    code.cellsize = (sqrtf(distanceSQ(code.a, helpA)) + sqrtf(distanceSQ(code.c, helpC))) / (2.0f * 7.0f);
-
     // Done here.
     return code;
 }
 
-cv::Mat QRDetector::alignQRCode(const cv::Mat& image, const QRCode& code) const {
+cv::Mat QRDetector::alignQRCode(const cv::Mat& image, QRCode& code, const std::vector<cv::Point>& corners) const {
 
     cv::Mat result(QR_BUFFER_SIZE, QR_BUFFER_SIZE, image.type());
     const float size = QR_BUFFER_SIZE;
@@ -150,9 +150,21 @@ cv::Mat QRDetector::alignQRCode(const cv::Mat& image, const QRCode& code) const 
             {size,  size},
     };
 
-    cv::Mat warpMat(2, 3, CV_32FC1);
-    warpMat = cv::getAffineTransform(srcQuad, dstQuad);
-    cv::warpAffine(image, result, warpMat, result.size());
+    // Transform image.
+    cv::Mat warpMat = cv::getPerspectiveTransform(srcQuad, dstQuad);
+    cv::warpPerspective(image, result, warpMat, result.size());
+
+    // Determine cell size in image space.
+    std::vector<cv::Point2f> transformed(corners.size());
+    for(int i=0; i<corners.size(); i++) transformed[i] = corners[i];
+    cv::perspectiveTransform(transformed, transformed, warpMat);
+    float len = 0.0f;
+    for(int i=0; i<transformed.size(); i+=4) {
+        for(int j=0; j<4; j++) {
+            len += std::sqrt(distanceSQ(transformed[i+j], transformed[i+(j+1) % 4]));
+        }
+    }
+    code.cellsize = len / (7 * corners.size()); // cells * markers * distances/marker
 
     return result;
 }
@@ -161,31 +173,41 @@ cv::Mat QRDetector::normalizeQRCode(const cv::Mat& image, const QRCode& code) co
 
     // First, convert into binary image.
     cv::Mat binary;
-    //cv::threshold(image, result, BINARY_THRESHOLD, 255, cv::THRESH_BINARY);
-    cv::adaptiveThreshold(image, binary, 255.0, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY, 101, 1.0); // HACK: ugly code
-
-    /*
-    int size = static_cast<int>((image.rows + image.cols) / (2.0f * code.cellsize));
-    cv::resize(binary, binary, cv::Size(size, size), 0.0, 0.0, CV_INTER_AREA);
-    return binary;
-    /*/
+    //FIXME: binarize beforehand?
+    //cv::threshold(image, binary, BINARY_THRESHOLD, 255, cv::THRESH_OTSU);
+    cv::cvtColor(image, binary, CV_RGB2GRAY);
+    cv::adaptiveThreshold(binary, binary, 255.0, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY, 101, 1.0); // HACK: ugly code
 
     // Determine code size.
-    int size = static_cast<int>(0.5f * QR_BUFFER_SIZE / code.cellsize); // FIXME: Why is it we need to mult by 0.5 ??
+    int size = static_cast<int>(QR_BUFFER_SIZE / code.cellsize);
     float d = static_cast<float>(QR_BUFFER_SIZE) / size;
 
     cv::Mat final = cv::Mat::zeros(size, size, CV_8UC1);
     for(int r=0; r<size; r++) {
         for(int c=0; c<size; c++) {
-            int x = static_cast<int>(d * (r + 0.5f));
-            int y = static_cast<int>(d * (c + 0.5f));
-            if(binary.at<uchar>(x, y) > 0)
-                final.at<uchar>(r, c) = 255;
+            if(code.cellsize > 3.0f) {
+                int avg = 0;
+                for(int i=-1; i<=1; i++) {
+                    for(int j=-1; j<=1; j++) {
+                        int x = static_cast<int>(d * (r + 0.5f)) + i;
+                        int y = static_cast<int>(d * (c + 0.5f)) + j;
+                        avg += binary.at<uchar>(x, y);
+                    }
+                }
+
+                if(avg / 9 > BINARY_THRESHOLD)
+                    final.at<uchar>(r, c) = 255;
+
+            } else {
+                int x = static_cast<int>(d * (r + 0.5f));
+                int y = static_cast<int>(d * (c + 0.5f));
+                if(binary.at<uchar>(x, y) > BINARY_THRESHOLD)
+                    final.at<uchar>(r, c) = 255;
+            }
         }
     }
 
     return final;
-    //*/
 }
 
 std::vector<cv::Point> QRDetector::simplyfyContour(const std::vector<cv::Point>& contour) const {
