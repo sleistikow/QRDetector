@@ -40,4 +40,6 @@
 *.pdf
 
 #Test directories
-tests/
+tests/diffs
+tests/errors
+tests/results
