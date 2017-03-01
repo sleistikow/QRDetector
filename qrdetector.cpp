@@ -115,7 +115,7 @@ cv::Mat QRDetector::detectQRCode(const cv::Mat& image, int debug) const {
 
     //---- Debug output begin
     if(debug & DEBUG_BINARY)    cv::imshow("gray", gray);
-    //if(debug & DEBUG_EDGE)      cv::imshow("edge", edgeMap);
+    if(debug & DEBUG_EDGE)      cv::imshow("edge", edgeMap);
     if(debug & DEBUG_ALIGNED)   cv::imshow("aligned", imAligned);
     if(debug & DEBUG_AUGMENTED) cv::imshow("input", augmented);
     //---- Debug output end
@@ -151,9 +151,7 @@ QRDetector::QRCode QRDetector::extractQRCode(const std::vector<std::vector<cv::P
         idxC = (orientation(centerOfMass[1], centerOfMass[2], centerOfMass[0]) < 0) ? 1 : 2;
     }
 
-    cv::circle(augmented, centerOfMass[idxC], 10, cv::Scalar(0, 0, 255), -1, 8, 0);
-
-    // Simplify square to determine enclosing rect.
+    // Simplify contour to determine enclosing hull.
     std::vector<std::vector<cv::Point>> hullContour(1);
     std::vector<cv::Point>& hull = hullContour[0];
     hull = simplifyContour(corners, 5);
@@ -293,7 +291,7 @@ std::vector<cv::Point> QRDetector::simplifyContour(const std::vector<cv::Point>&
     double epsilon = SIMPLFIICATION_START_EPSILON;
     while(simple.size() > numPoints) {
         cv::approxPolyDP(simple, simple, epsilon, true);
-        epsilon *= 2.0;
+        epsilon += 2.0;
     }
     return simple;
 }

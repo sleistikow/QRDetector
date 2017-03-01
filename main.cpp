@@ -116,8 +116,8 @@ int main(int argc, char** argv) {
     // Compare with reference image.
     if(reference) {
         std::cout << "Comparison yields: ";
-        cv::Mat ref = cv::imread(reference);
-        if(ref.cols == qr.cols && ref.rows == qr.rows) {
+        cv::Mat ref = cv::imread(reference, cv::IMREAD_GRAYSCALE);
+        if(ref.cols == qr.cols && ref.rows == qr.rows && ref.type() == qr.type()) {
             cv::Mat diff = cv::Mat::zeros(ref.rows, ref.cols, CV_8UC1);
             for(int r = 0; r < ref.rows; r++) {
                 for(int c = 0; c < ref.cols; c++) {
@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
             else
                 std::cout << "writing diff file failed." << std::endl;
         } else
-            std::cout << "dimensions not equals." << std::endl;
+            std::cout << "size or type not equals." << std::endl;
     }
 
 #endif
