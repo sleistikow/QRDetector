@@ -2,68 +2,75 @@
 import os, glob, shutil, subprocess
 
 ''' 
-*** Benötigte Ordner werden vom Skript erstellt und der results bzw. diffs Ordner werden vor der Ausführung geleert
+*** Benötigte Ordner werden vom Skript erstellt und der results/diffs/errors Ordner werden vor der Ausführung geleert
 *** 
 *** Zu testende Bilder müssen im Ordner tests liegen und den Namen <referenzBild>_XXX.jpg besitzen
 *** Die Differenzbilder werden in Ordner diffs gespeichert und haben den gleichen Namen wie das getestete Bild
-*** Die erzeugten QR-COdes werden im Ordner results gespeichert und haben den gleichen Namen wie das getestete Bild
+*** Die erzeugten QR-Codes werden im Ordner results gespeichert und haben den gleichen Namen wie das getestete Bild
+*** Bilder, auf welchen kein QR-Code erkannt wurden werden im Ordner errors abgelegt
 *** Die Referenzbilder müssen im Ordner references liegen
 '''
 
 executable = 'qr_detection'
+diffName = 'diff.png'
 baseDir = 'tests'
 
-refDir = 'references'
-resDir = 'results'
-imgDir = 'images'
-difDir = 'diffs'
+dirs = {'ref':'references', 'res':'results', 'img':'images', 'err':'errors', 'dif':'diffs'}
 
 def testImages():
-    testImageRegex = os.path.join(baseDir, imgDir, '*.jpg')
+    testImageRegex = os.path.join(baseDir, dirs['img'], '*.jpg')
     testImages = glob.glob(testImageRegex)
 
-    correct = 0
+    stats = { 'all' : len(testImages) }
+    stats['notFound'] = 0
+    stats['correct'] = 0
+    stats['failed'] = 0
 
     for img in testImages:
         path, name = os.path.split(img)
         
-        res = os.path.join(baseDir, resDir, name)
+        res = os.path.join(baseDir, dirs['res'], name)
         
         refName = name[:name.rfind('_')] + '.png'
-        ref = os.path.join(baseDir, refDir, refName)
+        ref = os.path.join(baseDir, dirs['ref'], refName)
         
         resCode = subprocess.call(['./' + executable, img, res, ref])
+
+        if not os.path.isfile(diffName):
+            stats['correct'] += 1
         
-        if resCode == 0:
-            correct += 1
-            
-            diffPath = os.path.join(baseDir, difDir, name.replace('jpg', 'png'))
+        elif resCode == 0: # Diff file exists
+            stats['failed'] += 1
+            diffPath = os.path.join(baseDir, dirs['dif'], name.replace('jpg', 'png'))
             shutil.move("diff.png", diffPath)
+        
+        else: # QR-Code was not found
+            stats['notFound'] += 1
+            errPath = os.path.join(baseDir, dirs['err'], name)
+            shutil.copyfile(img, errPath)
     
-    return len(testImages), correct
+    return stats
 
 
 if __name__ == '__main__':
     
-    path = os.path.join(baseDir, difDir)
+    path = os.path.join(baseDir, dirs['dif'])
     if os.path.exists(path): shutil.rmtree(path)
     
-    path = os.path.join(baseDir, resDir)
+    path = os.path.join(baseDir, dirs['res'])
     if os.path.exists(path): shutil.rmtree(path)
     
-    path = os.path.join(baseDir, refDir)
-    if not os.path.exists(path): os.makedirs(path)
+    path = os.path.join(baseDir, dirs['err'])
+    if os.path.exists(path): shutil.rmtree(path)
     
-    path = os.path.join(baseDir, resDir)
-    if not os.path.exists(path): os.makedirs(path)
+    for k,v in dirs.items():
+        path = os.path.join(baseDir, v)
+        if not os.path.exists(path): os.makedirs(path)
     
-    path = os.path.join(baseDir, imgDir)
-    if not os.path.exists(path): os.makedirs(path)
+    stats = testImages()
     
-    path = os.path.join(baseDir, difDir)
-    if not os.path.exists(path): os.makedirs(path)
-    
-    anz, correct = testImages()
-    
-    print('\nEs wurden %d Bilder getestet' %(anz))
-    if anz > 0: print('Davon wurden %d QR-Codes richtig erkannt (%.2f%%)' %(correct, correct/anz*100))
+    print('\nEs wurden %d Bilder getestet' %(stats['all']))
+    if stats['all'] > 0:
+        print('%d QR-Codes komplett richtig erkannt (%.2f%%)' %(stats['correct'], stats['correct'] / stats['all'] * 100))
+        print('%d QR-Codes teilweise richtig erkannt (%.2f%%)' %(stats['failed'], stats['failed'] / stats['all'] * 100))
+        print('In %d Bildern wurde kein QR-Codes gefunden (%.2f%%)' %(stats['notFound'], stats['notFound'] / stats['all'] * 100))
