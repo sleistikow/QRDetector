@@ -1,6 +1,3 @@
-#include <string>
-#include <algorithm>
-#include <unistd.h>
 #include <opencv2/opencv.hpp>
 
 #include "qrdetector.h"
@@ -15,22 +12,29 @@
 //////////////////////////////////////////////////////
 /// Constants definition section
 ///
-static const int DEFAULT_IMAGE_UPSCALE = 1000;
+static const int MIN_IMAGE_DIMENSION = 1000; // Default upscale for input images.
 static const char* DEFAULT_INPUT = "qr.jpg";
 static const char* DEFAULT_OUTPUT = "out.png";
+static const char* DEFAULT_REFERENCE = nullptr;
+static const char* DEFAULT_DIFF = "diff.png";
 //////////////////////////////////////////////////////
 
 #if defined(MODE_WEBCAM) && defined(MODE_RELEASE)
 #error "Both MODE_WEBCAM and MODE_RELEASE are defined"
 #endif
 
-// http://docs.opencv.org/2.4/modules/imgproc/doc/geometric_transformations.html#resize
-cv::Mat resizeImage(const cv::Mat& img, int newSize) {
+/**
+ * Resizes the input image, that the smallest dimension matches
+ * the <p>minDimension</p> and the aspect ratio is preserved.
+ * @param image the image being about to be resized
+ * @return the resized image
+ */
+cv::Mat resizeImage(const cv::Mat& img, int minDimension) {
     int maxDim = std::max(img.rows, img.cols);
-    double scale = newSize / static_cast<double>(maxDim);
+    double scale = minDimension / static_cast<double>(maxDim);
 
     cv::Mat scaledImg;
-    
+
     int interpolater = (scale > 1) ? CV_INTER_LINEAR : CV_INTER_AREA;
     cv::resize(img, scaledImg, cv::Size(), scale, scale, interpolater);
 
@@ -39,26 +43,15 @@ cv::Mat resizeImage(const cv::Mat& img, int newSize) {
 
 int main(int argc, char** argv) {
 
-    int size = DEFAULT_IMAGE_UPSCALE;
-
-    int opt = 0;
-    while((opt = getopt(argc, argv, "s:")) != -1) {
-        switch (opt) {
-        case 's':
-            size = atoi(optarg);
-            break;
-        default: /* '?' */
-            std::cout << "Usage: " << argv[0] << "[-s size]\n" << std::endl;
-            return EXIT_FAILURE;
-        }
-    }
-
     // Parse command line arguments
     const char* input = DEFAULT_INPUT;
     const char* output = DEFAULT_OUTPUT;
+    const char* reference = DEFAULT_REFERENCE;
     if(argc > 2) {
         input = argv[1];
         output = argv[2];
+        if(argc > 3)
+            reference = argv[3];
     }
 
     // This will hold the captured images.
@@ -78,11 +71,14 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
-    // Resize the image. FIXME: not necessary any longer?
-    //image = resizeImage(image, size);
+    image = resizeImage(image, MIN_IMAGE_DIMENSION);
 #endif
 
 #ifndef MODE_RELEASE
+
+    // Configure debug output.
+    int debug = QRDetector::DEBUG_ALIGNED | QRDetector::DEBUG_AUGMENTED | QRDetector::DEBUG_BINARY | QRDetector::DEBUG_EDGE;
+
     // Main Loop, quit on keypress.
     while (cv::waitKey(1) != 'q') {
 
@@ -91,7 +87,7 @@ int main(int argc, char** argv) {
         capture >> image;
 #endif
         // Extract the qr code and show the result.
-        cv::Mat result = detector.detectQRCode(image);
+        cv::Mat result = detector.detectQRCode(image, debug);
         if(!result.empty())
             cv::imshow("result", result);
         else
@@ -113,9 +109,29 @@ int main(int argc, char** argv) {
     params.push_back(0);
 
     if(cv::imwrite(output, qr, params))
-        std::cout << "QR Code successfully written!" << std::endl;
+        std::cout << "Result successfully written!" << std::endl;
     else
-        std::cout << "Writing QR Code failed!" << std::endl;
+        std::cout << "Writing Result failed!" << std::endl;
+
+    // Compare with reference image.
+    if(reference) {
+        std::cout << "Comparison yields: ";
+        cv::Mat ref = cv::imread(reference);
+        if(ref.cols == qr.cols && ref.rows == qr.rows) {
+            cv::Mat diff = cv::Mat::zeros(ref.rows, ref.cols, CV_8UC1);
+            for(int r = 0; r < ref.rows; r++) {
+                for(int c = 0; c < ref.cols; c++) {
+                    if(ref.at<uchar>(r, c) != qr.at<uchar>(r, c))
+                        diff.at<uchar>(r, c) = 255;
+                }
+            }
+            if(cv::imwrite(DEFAULT_DIFF, diff, params))
+                std::cout << "diff file successfully written." << std::endl;
+            else
+                std::cout << "writing diff file failed." << std::endl;
+        } else
+            std::cout << "dimensions not equals." << std::endl;
+    }
 
 #endif
 
