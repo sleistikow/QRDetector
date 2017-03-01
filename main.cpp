@@ -145,7 +145,8 @@ int main(int argc, char** argv) {
             std::cout << "size or type not equals." << std::endl;
             return EXIT_FAILURE;
         }
-    }
+    } else if(!codeFound)
+        return EXIT_FAILURE;
 
 #endif
 
