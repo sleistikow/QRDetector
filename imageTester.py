@@ -2,13 +2,13 @@
 import os, glob, shutil, subprocess
 
 ''' 
-*** Benötigte Ordner werden vom Skript erstellt und der results/diffs/errors Ordner werden vor der Ausführung geleert
+*** Benoetigte Ordner werden vom Skript erstellt und der results/diffs/errors Ordner werden vor der Ausfuehrung geleert
 *** 
-*** Zu testende Bilder müssen im Ordner tests liegen und den Namen <referenzBild>_XXX.jpg besitzen
+*** Zu testende Bilder muessen im Ordner tests liegen und den Namen <referenzBild>_XXX.jpg besitzen
 *** Die Differenzbilder werden in Ordner diffs gespeichert und haben den gleichen Namen wie das getestete Bild
 *** Die erzeugten QR-Codes werden im Ordner results gespeichert und haben den gleichen Namen wie das getestete Bild
 *** Bilder, auf welchen kein QR-Code erkannt wurden werden im Ordner errors abgelegt
-*** Die Referenzbilder müssen im Ordner references liegen
+*** Die Referenzbilder muessen im Ordner references liegen
 '''
 
 executable = 'qr_detection'
@@ -36,7 +36,7 @@ def testImages():
         
         resCode = subprocess.call(['./' + executable, img, res, ref])
 
-        if not os.path.isfile(diffName):
+        if resCode == 0 and not os.path.isfile(diffName):
             stats['correct'] += 1
         
         elif resCode == 0: # Diff file exists
@@ -48,7 +48,12 @@ def testImages():
             stats['notFound'] += 1
             errPath = os.path.join(baseDir, dirs['err'], name)
             shutil.copyfile(img, errPath)
-    
+            
+        print()
+        
+        if os.path.isfile(diffName):
+            os.remove(diffName)
+            
     return stats
 
 
