@@ -38,3 +38,6 @@
 *.toc
 *.synctex.gz
 *.pdf
+
+#Test directories
+tests/
