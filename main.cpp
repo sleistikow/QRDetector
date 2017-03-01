@@ -96,12 +96,16 @@ int main(int argc, char** argv) {
 
 #else
 
+    bool codeFound = false;
+
     cv::Mat qr = detector.detectQRCode(image);
     if(qr.empty()) {
         std::cout << "QR Code not found!" << std::endl;
         qr = cv::Mat::zeros(1, 1, CV_8UC1);
-    } else
+    } else {
         std::cout << "QR Code found!" << std::endl;
+        codeFound = true;
+    }
 
     // Deactivate compression.
     std::vector<int> params;
@@ -114,23 +118,33 @@ int main(int argc, char** argv) {
         std::cout << "Writing Result failed!" << std::endl;
 
     // Compare with reference image.
-    if(reference) {
+    if(reference && codeFound) {
+        bool equals = true;
         std::cout << "Comparison yields: ";
         cv::Mat ref = cv::imread(reference, cv::IMREAD_GRAYSCALE);
         if(ref.cols == qr.cols && ref.rows == qr.rows && ref.type() == qr.type()) {
             cv::Mat diff = cv::Mat::zeros(ref.rows, ref.cols, CV_8UC1);
             for(int r = 0; r < ref.rows; r++) {
                 for(int c = 0; c < ref.cols; c++) {
-                    if(ref.at<uchar>(r, c) != qr.at<uchar>(r, c))
+                    if(ref.at<uchar>(r, c) != qr.at<uchar>(r, c)) {
                         diff.at<uchar>(r, c) = 255;
+                        equals = false;
+                    }
                 }
             }
-            if(cv::imwrite(DEFAULT_DIFF, diff, params))
-                std::cout << "diff file successfully written." << std::endl;
-            else
-                std::cout << "writing diff file failed." << std::endl;
-        } else
+            if(!equals) {
+                if(cv::imwrite(DEFAULT_DIFF, diff, params))
+                    std::cout << "diff file successfully written." << std::endl;
+                else
+                    std::cout << "writing diff file failed." << std::endl;
+            } else
+                std::cout << "perfect match!" << std::endl;
+
+            return EXIT_SUCCESS;
+        } else {
             std::cout << "size or type not equals." << std::endl;
+            return EXIT_FAILURE;
+        }
     }
 
 #endif
