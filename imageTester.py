@@ -11,7 +11,7 @@ import os, glob, shutil, subprocess
 *** Die Referenzbilder muessen im Ordner references liegen
 '''
 
-executable = 'qr_detection'
+executable = 'build-debug/qr_detection'
 diffName = 'diff.png'
 baseDir = 'tests'
 
@@ -34,6 +34,7 @@ def testImages():
         refName = name[:name.rfind('_')] + '.png'
         ref = os.path.join(baseDir, dirs['ref'], refName)
         
+        print("------------------- " + img + " -------------------")
         resCode = subprocess.call(['./' + executable, img, res, ref])
 
         if resCode == 0 and not os.path.isfile(diffName):

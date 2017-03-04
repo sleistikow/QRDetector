@@ -7,12 +7,13 @@
 ///
 //#define MODE_WEBCAM // uncomment this line to use webcam
 #define MODE_RELEASE // uncomment this line for evaluation build
+#define SECOND_TRY // uncomment to try input image with another resolution, in case QR-Code has not been found
 //////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////
 /// Constants definition section
 ///
-static const int MIN_IMAGE_DIMENSION = 1000; // Default upscale for input images.
+static const int MIN_IMAGE_DIMENSION = 1500; // Default minimal dimension for input images.
 static const char* DEFAULT_INPUT = "qr.jpg";
 static const char* DEFAULT_OUTPUT = "out.png";
 static const char* DEFAULT_REFERENCE = nullptr;
@@ -30,12 +31,12 @@ static const char* DEFAULT_DIFF = "diff.png";
  * @return the resized image
  */
 cv::Mat resizeImage(const cv::Mat& img, int minDimension) {
-    int maxDim = std::max(img.rows, img.cols);
-    double scale = minDimension / static_cast<double>(maxDim);
+    double minDim = std::min<double>(img.rows, img.cols);
+    double scale = minDimension / minDim;
 
     cv::Mat scaledImg;
 
-    int interpolater = (scale > 1) ? CV_INTER_LINEAR : CV_INTER_AREA;
+    int interpolater = (scale > 1) ? cv::INTER_CUBIC : cv::INTER_NEAREST;
     cv::resize(img, scaledImg, cv::Size(), scale, scale, interpolater);
 
     return scaledImg;
@@ -70,8 +71,6 @@ int main(int argc, char** argv) {
         std::cout << "Failed loading image!" << std::endl;
         return EXIT_FAILURE;
     }
-
-    image = resizeImage(image, MIN_IMAGE_DIMENSION);
 #endif
 
 #ifndef MODE_RELEASE
@@ -99,6 +98,13 @@ int main(int argc, char** argv) {
     bool codeFound = false;
 
     cv::Mat qr = detector.detectQRCode(image);
+#ifdef SECOND_TRY
+    // Sometimes rescaling the image improves edge-detection and therefore QR-Code detection.
+    if(qr.empty()) {
+        image = resizeImage(image, MIN_IMAGE_DIMENSION);
+        qr = detector.detectQRCode(image);
+    }
+#endif
     if(qr.empty()) {
         std::cout << "QR Code not found!" << std::endl;
         qr = cv::Mat::zeros(1, 1, CV_8UC1);
@@ -138,11 +144,11 @@ int main(int argc, char** argv) {
                 return EXIT_SUCCESS;
             }
 
-            std::cout << "errors found: " << errors << std::endl;
+            std::cout << "errors found: " << errors << "/" << ref.cols*ref.rows << std::endl;
         } else {
             diff = cv::Mat::zeros(1, 1, CV_8UC1);
             diff.at<uchar>(0, 0) = 255;
-            std::cout << "size or type not equals." << std::endl;
+            std::cout << "size or type not equals. Dimensions: " << qr.rows << " <-> " << ref.rows << std::endl;
         }
 
         if(!cv::imwrite(DEFAULT_DIFF, diff, params))
