@@ -59,7 +59,6 @@ cv::Mat QRDetector::detectQRCode(const cv::Mat& image, int debug) const {
 
                 // Each child element needs to have the same area ratio.
                 double innerArea = cv::minAreaRect(contours[level]).size.area();
-                //std::cout << "Level: " << children << ": "<< outerArea<<"/"<<innerArea<<"="<<outerArea/innerArea<<" <-> "<<ratio[children] <<std::endl;
                 if(std::abs((outerArea / innerArea) - ratios[children]) > MAX_AREA_THRESHOLD)
                     break;
                 outerArea = innerArea;
@@ -178,7 +177,7 @@ QRDetector::QRCode QRDetector::extractQRCode(const std::vector<std::vector<cv::P
 
     // We always must find the correct position!
     //assert(start >= 0);
-    if(start == -1) start = 0; // HACK: sometimes occurs.
+    if(start == -1) start = 0; // HACK: even if unlikely, better continue working.
 
     // Get helper points.
     cv::Point helpC = hull[(start + 0) % hull.size()];
@@ -239,7 +238,7 @@ cv::Mat QRDetector::alignQRCode(const cv::Mat& image, QRCode& code) const {
         // 2. Transform vertices.
         cv::perspectiveTransform(transformed, transformed, warpMat);
 
-        // 3. Retrieve size of the bounding rect.
+        // 3. Retrieve size of the minimal bounding rect.
         cv::Size2f size = cv::minAreaRect(transformed).size;
         s += size.width + size.height;
     }

@@ -7,15 +7,14 @@
 ///
 //#define MODE_WEBCAM // uncomment this line to use webcam
 #define MODE_RELEASE // uncomment this line for evaluation build
-#define SECOND_TRY // uncomment to try input image with another resolution, in case QR-Code has not been found
+#define TRY_SCALING // uncomment to try input image with another resolution, in case QR-Code has not been found
 //////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////
 /// Constants definition section
 ///
-static const int MIN_IMAGE_DIMENSION = 1500; // Default minimal dimension for input images.
-static const char* DEFAULT_INPUT = "qr.jpg";
-static const char* DEFAULT_OUTPUT = "out.png";
+static const int IMAGE_UPSCALE = 1500;
+static const int IMAGE_DOWNSCALE = 400;
 static const char* DEFAULT_REFERENCE = nullptr;
 static const char* DEFAULT_DIFF = "diff.png";
 //////////////////////////////////////////////////////
@@ -42,17 +41,21 @@ cv::Mat resizeImage(const cv::Mat& img, int minDimension) {
     return scaledImg;
 }
 
+/// Main function.
 int main(int argc, char** argv) {
 
     // Parse command line arguments
-    const char* input = DEFAULT_INPUT;
-    const char* output = DEFAULT_OUTPUT;
+    const char* input = nullptr;
+    const char* output = nullptr;
     const char* reference = DEFAULT_REFERENCE;
     if(argc > 2) {
         input = argv[1];
         output = argv[2];
         if(argc > 3)
             reference = argv[3];
+    } else {
+        std::cout << "Usage: qr_detector <input image file> <output image file> [<reference image file>]" << std::endl;
+        return EXIT_FAILURE;
     }
 
     // This will hold the captured images.
@@ -98,11 +101,15 @@ int main(int argc, char** argv) {
     bool codeFound = false;
 
     cv::Mat qr = detector.detectQRCode(image);
-#ifdef SECOND_TRY
+#ifdef TRY_SCALING
     // Sometimes rescaling the image improves edge-detection and therefore QR-Code detection.
     if(qr.empty()) {
-        image = resizeImage(image, MIN_IMAGE_DIMENSION);
-        qr = detector.detectQRCode(image);
+        cv::Mat img = resizeImage(image, IMAGE_DOWNSCALE);
+        qr = detector.detectQRCode(img);
+    }
+    if(qr.empty()) {
+        cv::Mat img = resizeImage(image, IMAGE_UPSCALE);
+        qr = detector.detectQRCode(img);
     }
 #endif
     if(qr.empty()) {

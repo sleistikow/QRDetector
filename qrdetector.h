@@ -6,7 +6,7 @@
 class QRDetector {
 
     // Canny Operator Thresholds.
-    static constexpr double CANNY_LOWER_THRESHOLD = 70.0;
+    static constexpr double CANNY_LOWER_THRESHOLD = 50.0;
     static constexpr double CANNY_UPPER_THRESHOLD = 180.0;
 
     // Median filter neighbourhood.

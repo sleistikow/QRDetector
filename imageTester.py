@@ -11,7 +11,7 @@ import os, glob, shutil, subprocess
 *** Die Referenzbilder muessen im Ordner references liegen
 '''
 
-executable = 'build-debug/qr_detection'
+executable = 'qr_detector'
 diffName = 'diff.png'
 baseDir = 'tests'
 
