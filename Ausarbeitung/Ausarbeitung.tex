@@ -64,16 +64,49 @@ An der jeweils anderen Seite der beiden Quadrate und zusätzlich an beiden Seite
 \newpage
 \section{Implementierung}
 \label{s:implementierung}
-Die wesentliche Aufgabe des Praktikums war es, die recherchierten Grundlagen (siehe Kapitel \ref{s:grundlagen}) zu verwenden, um einen lauffähigen QR-Code-Detektor zu implementieren. Dessen Ein- sowie Ausgabe wird im Folgenden näher definiert.
+Die wesentliche Aufgabe des Praktikums war es, die recherchierten Grundlagen (siehe Kapitel \ref{s:grundlagen}) zu verwenden, um einen lauffähigen QR-Code-Detektor zu implementieren. Dessen Ein- sowie Ausgabe werden im Folgenden näher definiert.
 Im Anschluss wird auf Details der Detektion eingegangen und erklärt, wie die Ausgabe aus der Eingabe gewonnen wird.
+Grundsätzlich arbeitet das Programm in zwei Modi: dem \emph{Release}- und dem \emph{Live}-Modus.
+Ersterer ist für die Evaluierung erstellt worden und erzeugt ein reines Konsolenprogramm, welches ohne weitere Umwege die Eingabe in die Ausgabe überführt.
+Im \emph{Live}-Modus hingegen verwendet das Programm die Webcam des ausführenden Rechners, falls vorhanden als Eingabe. Es werden also, abhängig von deren Aufnahmeeigenschaften, kontinuierlich neue Eingaben und somit Ausgaben generiert. Dabei werden zusätzliche visuelle Ausgaben der durchgeführten Zwischenschritte erzeugt, welche im Unterkapitel \ref{s:detektion} näher erläutert werden.
 
 \subsection{Eingabe}
+\label{s:eingabe}
+
+Als Eingabe für das im Rahmen des Praktikums erstellte Programm dient ein Bild in üblichem, d. h. von OpenCV lesbarem, Format. Als Beispiele seien hier \emph{JPG}, \emph{PNG} und \emph{BMP} genannt.
+Dies darf nach Aufgabenstellung höchstens einen QR-Code enthalten.
+Desweiteren schränken wir die Eingabe ein, indem wir höchstens drei \emph{Finder-Pattern} erkennen.
+Im Falle des \emph{Live}-Modus generiert die verbundene Webcam die Eingabebilder.
 
 \subsection{Ausgabe}
+\label{s:ausgabe}
+
+Die Ausgabe des Programms lässt sich erneut nach den beiden Modi aufteilen.
+Im \emph{Release}-Modus wird genau ein Bild gemäß
+TODO CHRISTIAN/FREDDY - AUFGABENSTELLUNG NENNEN
+erstellt. Letztlich soll jedoch unterschieden werden, ob der QR-Code im Eingabebild erkannt werden konnte oder nicht. Im Falle eines Fehlers wird ein 1x1 Pixel großes, schwarzes Bild generiert. Bei erfolgreicher Detektion hingegen ein quadratisches Bild, deren Dimension exakt der des QR-Codes im Eingabebild entspricht.
+Ein QR-Code mit 29x29 Modulen im Eingabebild erzeugt somit ein Ausgabebild der Größe 29x29 Pixeln, wobei die Farbe eines Pixels exakt dem Wert eines Moduls entspricht.
+Das Bild wird verlustfrei im \emph{PNG}-Format gespeichert, um möglichen Datenverlust zu verhindern.
+Im \emph{Live}-Modus hingegen wird keine Datei, sondern lediglich visuelle Ausgabe erzeugt. Das Ergebnis wird in einem Fenster angezeigt und kann direkt betrachtet werden. Auf weitere Details wird im folgenden Kapitel eingegangen.
 
 \subsection{Detektion}
+\label{s:detektion}
+
+Der Begriff der Detektion lässt sich unmittelbar aus der Problemstellung herleiten.
+Gefordert ist insbesondere nicht das Lesen des QR-Codes, sondern lediglich das Verorten und Normalisieren des QR-Codes, bzw. das Feststellen von dessen Abwesenheit im Bild. Die dafür notwendigen Schritte werden in den Unterkapiteln dieses Kapitels erläutert.
 
 \subsubsection{Vorverarbeitung}
+Die Vorverarbeitung spielt in der Bildverarbeitung meist eine große Rolle. Die Qualität von Echtweltdaten ist oftmals weit entfernt vom Óptimum, sodass die Anwendung eines Algorithmus auf diesen im Allgemeinen keine oder nur dürftige Ergebnisse liefert.
+Dies trifft auch auf die gegenwärtige Problemstellung zu. Eingabebilder, insbesondere durch eine Webcam erzeugte, können mehrere Probleme aufweisen.
+Geläufige Beispiele sind hierbei Rauschen, Verwaschungen und Unschärfe, welche durch den Sensor der Kamera, schlechte Lichtverhältnisse oder eine unruhige Kameraführung entstehen können.
+
+%TODO Ausführen mit optischen Zwischenergebnissen
+\begin{itemize}
+	\item Graustufenbild
+	\item Medianfilter
+	\item global Thresholding (Otsu)
+	\item Medianfilter
+\end{itemize}
 
 \subsubsection{Lokalisierung}
 
