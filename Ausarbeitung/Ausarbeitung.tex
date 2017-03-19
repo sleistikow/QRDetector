@@ -187,7 +187,38 @@ Geläufige Beispiele sind hierbei Rauschen, Verwaschungen und Unschärfe, welche
 
 \subsubsection{Binarisierung}
 
+\newpage
 \section{Evaluation}
+Zur Evaluierung des entwickelten Programmes wurden diverse QR-Codes mit Hilfe eines Generators erstellt. Hierbei wurde darauf geachtet, dass unterschiedliche Webseiten aber auch unterschiedliche Texte codiert wurde. Dadurch wurde indirekt sichergestellt, dass QR-Codes verschiedener Versionen erstellt wurden. Diese QR-Codes wurden im Anschluss ausgedruckt und einzeln an unterschiedliche Stellen in einer realen Umgebung positioniert. Dort wurden sie fotografiert. Beim Aufnehmen der Fotos wurde darauf geachtet, dass die QR-Codes möglichst planar liegen und jeweils nur ein Code sichtbar ist. Um für ein breites Spektrum an Testbildern zu sorgen, wurden unterschiedliche Belichtungen und Rotationen vorgenommen. Die Belichtungsvariationen reichen von natürlichen Tagesbeleuchtung über künstliche Beleuchtung in der Nacht bis hin zu Blitzlichtfotografien. Die Rotationen wurden in sämtlichen Dimensionen durchgeführt, um perspektivische Verzerrungen zu erreichen. Außerdem wurden die Bilder mit zwei unterschiedlichen Kameras aufgenommen, da hierdurch ein qualitativer Unterschied der Bilder entstand. So sind dunklere Bilder mit deutlicher Unschärfe entstanden, sowie helle Bilder mit hoher Schärfe. Zusätzlich zu den bisher genannten Parametern wurde auch die Entfernung des QR-Codes zu der Kamera variiert, um unterschiedliche Größen des Codes testen zu können.
+Das Testen erfolgte entweder über eine Webcam im Video-Modus der Anwendung oder per Skript. Im Video-Modus werden die Live-Bilder nach QR-Codes abgesucht und bei Erfolg wird in einem zusätzlichen Fenster der transformierte Code angezeigt. Zur besseren Evaluierung wurde jedoch ein Skript benutzt, welches bei Ausführung die gesamten Testbilder verarbeitet und den QR-Code extrahiert. Nach der Binarisierung wird jeder Code mit seinem Referenzbild verglichen. Die Einteilung der Ergebnisse erfolgt in drei unterschiedlichen Kategorien. Die erste stellt das perfekte Finden und Transformieren des QR-Codes dar. Dabei stimmt jedes Modul des erzeugten normalisierten QR-Codes mit dem entsprechenden Modul des Referenzbildes überein. Die zweite Kategorie ist durch teilweise richtig erkannte und transformierte QR-Codes definiert. Hierbei stimmen nicht mehr alle Module mit denen des Refernzbildes überein. Zur Analyse wird zusätzlich ausgegeben, wie viele der Module falsch sind. Die letzte Kategorie zeigt nicht gefundene QR-Codes auf. Hierbei wurden die QR-Codes im Bild nicht richtig erkannt, womit die nachfolgende Bearbeitung nicht gelingt und das Ergebnis kein gültiger QR-Code ist. 
+Wir haben unser Programm mit 28 unterschiedlichen Bildern getestet, auf denen jeweils ein QR-Code sichtbar ist. Bei der Ausführung des Skripts ergab sich folgendes Ergebnis. 17 der 28 Bilder (60.71\%) wurden komplett richtig erkannt. Teilweise richtig erkannt wurden 9 Bilder (32.14\%) , wobei eines der Resultate eine falsche Dimension aufweist und deswegen nicht mit seinem Referenzbild vergleichbar ist. In zwei Bildern wurde der QR-Code nicht gefunden (7.14\%).
+
+\begin{table}[h]
+\centering
+\begin{tabular}{ | p{0.15\textwidth} | p{0.15\textwidth} | p{0.15\textwidth} | p{0.15\textwidth} | p{0.15\textwidth} |}
+	\hline
+    \textbf{Nummer} & \textbf{Fehlerhafte Module} & \textbf{Gesamte Module} & \textbf{relativer Fehler} & \textbf{Differenz-bild} \\
+	\hline
+	1 & 28 & 625 & 0,0448\% & \includegraphics[width=0.1\textwidth]{images/amazon_2.png}\\
+	\hline
+	2 & 7 & 625 & 0,0112\% & \includegraphics[width=0.1\textwidth]{images/facebook_2.png}\\
+	\hline
+	3 & 20 & 625 & 0,032\% & \includegraphics[width=0.1\textwidth]{images/google_2.png}\\
+	\hline
+	4 & 251 & 1089 & 0,2305\% & \includegraphics[width=0.1\textwidth]{images/hallo_3.png}\\
+	\hline
+	5 & 53 & 625 & 0,0848\% & \includegraphics[width=0.1\textwidth]{images/reddit_1.png}\\	
+	\hline
+	6 & 11 & 625 & 0,0176\% & \includegraphics[width=0.1\textwidth]{images/reddit_2.png}\\	
+	\hline
+	7 & 28 & 441 & 0,0635\% & \includegraphics[width=0.1\textwidth]{images/test1_2.png}\\	
+	\hline
+	8 & 12 & 441 & 0,0272\% & \includegraphics[width=0.1\textwidth]{images/test2_2.png}\\	
+	\hline
+\end{tabular}
+\caption{Teilweise richtig erkannte QR-Codes}
+\label{tab:teilweiseKorrekt}
+\end{table}
 
 \section{Fazit und Ausblick}
 	
