@@ -83,8 +83,8 @@ Da die Eingabe eines QR-Codes meist durch ein aufgenommenes Bild einer Kamera vo
 
 Innerhalb diese Praktikums haben wir uns damit auseinander gesetzt, wie man planar aufgenommene QR-Codes möglichst schnell und zuverlässig aus einem Bild extrahieren kann. Dazu haben wir, basierend auf OpenCV, ein Programm entwickelt, welches sowohl Bilder von der Webcam eines Computers aufnehmen als auch schon gespeicherte Bilder laden kann und den  darin enthaltenen QR Code als eigenständiges Bild extrahiert.
 
-\subsection{Aufgabenstellung}
-\label{ss:aufgabe}
+\section{Aufgabenstellung}
+\label{s:aufgabenstellung}
 
 \newpage
 
@@ -129,8 +129,12 @@ Im Falle der aktuellsten Version 40 mit einem Fehlerkorrekturlevel L (7\%) ist a
 \subsection{Codierung der Daten}
 \label{ss:codierung}
 
+\subsection{Globales Thresholding nach Otsu}
+\label{ss:otsu}
 
-
+% Hier bitte einmal kurz erklären, wie der Funktioniert, gerne auch mit Bildern.
+% Siehe: http://docs.opencv.org/3.2.0/d7/d4d/tutorial_py_thresholding.html
+% Abschnitt: How Otsu's Binarization Works?
 
 \newpage
 
@@ -141,7 +145,7 @@ Die wesentliche Aufgabe des Praktikums war es, die recherchierten Grundlagen (si
 Im Anschluss wird auf Details der Detektion eingegangen und erklärt, wie die Ausgabe aus der Eingabe gewonnen wird.
 Grundsätzlich arbeitet das Programm in zwei Modi: dem \emph{Release}- und dem \emph{Live}-Modus.
 Ersterer ist für die Evaluierung erstellt worden und erzeugt ein reines Konsolenprogramm, welches ohne weitere Umwege die Eingabe in die Ausgabe überführt.
-Im \emph{Live}-Modus hingegen verwendet das Programm die Webcam des ausführenden Rechners, falls vorhanden als Eingabe. Es werden also, abhängig von deren Aufnahmeeigenschaften, kontinuierlich neue Eingaben und somit Ausgaben generiert. Dabei werden zusätzliche visuelle Ausgaben der durchgeführten Zwischenschritte erzeugt, welche im Unterkapitel \ref{s:detektion} näher erläutert werden.
+Im \emph{Live}-Modus hingegen verwendet das Programm die Webcam des ausführenden Rechners als Eingabe, falls vorhanden. Es werden also, abhängig von deren Aufnahmeeigenschaften, kontinuierlich neue Eingaben und somit Ausgaben generiert. Dabei werden zusätzliche visuelle Ausgaben der durchgeführten Zwischenschritte erzeugt, welche im Unterkapitel \ref{s:detektion} näher erläutert werden.
 
 \subsection{Eingabe}
 \label{s:eingabe}
@@ -155,9 +159,7 @@ Im Falle des \emph{Live}-Modus generiert die verbundene Webcam die Eingabebilder
 \label{s:ausgabe}
 
 Die Ausgabe des Programms lässt sich erneut nach den beiden Modi aufteilen.
-Im \emph{Release}-Modus wird genau ein Bild gemäß
-TODO CHRISTIAN/FREDDY - AUFGABENSTELLUNG NENNEN
-erstellt. Letztlich soll jedoch unterschieden werden, ob der QR-Code im Eingabebild erkannt werden konnte oder nicht. Im Falle eines Fehlers wird ein 1x1 Pixel großes, schwarzes Bild generiert. Bei erfolgreicher Detektion hingegen ein quadratisches Bild, deren Dimension exakt der des QR-Codes im Eingabebild entspricht.
+Im \emph{Release}-Modus wird genau ein Bild gemäß Aufgabestellung (siehe Kapitel \ref{s:aufgabenstellung}) erstellt. Letztlich soll jedoch unterschieden werden, ob der QR-Code im Eingabebild erkannt werden konnte oder nicht. Im Falle eines Fehlers wird ein 1x1 Pixel großes, schwarzes Bild generiert. Bei erfolgreicher Detektion hingegen ein quadratisches Bild, deren Dimension exakt der des QR-Codes im Eingabebild entspricht.
 Ein QR-Code mit 29x29 Modulen im Eingabebild erzeugt somit ein Ausgabebild der Größe 29x29 Pixeln, wobei die Farbe eines Pixels exakt dem Wert eines Moduls entspricht.
 Das Bild wird verlustfrei im \emph{PNG}-Format gespeichert, um möglichen Datenverlust zu verhindern.
 Im \emph{Live}-Modus hingegen wird keine Datei, sondern lediglich visuelle Ausgabe erzeugt. Das Ergebnis wird in einem Fenster angezeigt und kann direkt betrachtet werden. Auf weitere Details wird im folgenden Kapitel eingegangen.
@@ -228,7 +230,7 @@ Wir haben unser Programm mit 28 unterschiedlichen Bildern getestet, auf denen je
 \section{Fazit und Ausblick}
 Zusammenfassend wurde das Ziel, planare QR-Codes unter perspektivischer Verzerrung zu erkennen, erreicht. Die Eingabebilder werden nach Positionsmarkern eines QR-Codes durchsucht. Sobald drei Positionsmarker gefunden wurden, wird die konvexe Hülle um diese Marker gebildet. Aus jeweils zwei der Eckpunkte der konvexen Hülle werden darauf folgend Gerade gebildet. Der Schnittpunkt dieser Geraden dient als vierter Eckpunkt des QR-Codes. Im nächsten Schritt erfolgt die geometrische Normalisierung mit anschließender Bestimmung der Modulgröße im Bild. Mit Hilfe der Modulgröße kann der QR-Code entsprechend den Anforderungen skaliert werden, sodass jedes Modul ein Pixel groß ist. Da zusätzlich eine Binarisierung stattfindet, enthält das Ausgabebild nur noch schwarze oder weiße Pixel. 
 
-Während der Evaluierung wurden 62\% der QR-Codes komplett richtig erkannt, 32\% nur teilweise und 7\% überhaupt nicht. Ein wesentlicher Schwachpunkt liegt in der Erstellung der Testbilder. Da die QR-Codes ausgedruckt wurden, wellt sich das Papier auf den Testbildern und ist dadurch nicht mehr planar. Hierdurch wird der vierte Punkt nicht mehr exakt bestimmt. Dies führt insbesondere im unteren rechten Bereich der QR-Codes zu Fehlern (siehe Tabelle \ref{tab:teilweiseKorrekt}). 
+Während der Evaluierung wurden 62\% der QR-Codes komplett richtig erkannt, 32\% nur teilweise und 7\% überhaupt nicht. Ein Schwachpunkt liegt dabei in der Erstellung der Testbilder. Da die QR-Codes ausgedruckt wurden, wellt sich das Papier auf den Testbildern und ist dadurch nicht mehr planar. Da unser Programm für planare QR-Codes optimiert wurde, konnte so der vierte Punkt nicht mehr exakt bestimmt. Dies führt insbesondere im unteren rechten Bereich der QR-Codes zu Fehlern (siehe Tabelle \ref{tab:teilweiseKorrekt}). 
 
 Die Ungenauigkeit bei der Bestimmung des vierten Eckpunktes ist generell ein Aspekt der Umsetzung, der noch Verbesserungspotential bietet. Der vierte Eckpunkt wird durch ein Schnittpunkt zweier Geraden bestimmt, welche durch je zwei Punkte definiert werden, die relativ nah aneinander liegen. Um eine exaktere Bestimmung zu ermöglichen, wäre es sinnvoll die Gerade durch weiter auseinander liegende Punkte zu ermitteln. Im aktuellen Ansatz der Implementierung ist die Erweiterung der konvexen Hülle auf schwarze Module im QR-Code eine Möglichkeit um dies zu erreichen.
 
