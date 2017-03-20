@@ -14,6 +14,7 @@
 \usepackage{amsmath}
 \usepackage{amsfonts}
 \usepackage{graphicx}
+\usepackage{subfigure}
 
 \DeclareMathSymbol{*}{\mathbin}{symbols}{"01} % Ersetzt alle * durch \cdot in Math mode
 
@@ -171,26 +172,61 @@ Der Begriff der Detektion lässt sich unmittelbar aus der Problemstellung herlei
 Gefordert ist insbesondere nicht das Lesen des QR-Codes, sondern lediglich das Verorten und Normalisieren des QR-Codes, bzw. das Feststellen von dessen Abwesenheit im Bild. Die dafür notwendigen Schritte werden in den Unterkapiteln dieses Kapitels erläutert.
 
 \subsubsection{Vorverarbeitung}
-Die Vorverarbeitung spielt in der Bildverarbeitung meist eine große Rolle. Die Qualität von Echtweltdaten ist oftmals weit entfernt vom Óptimum, sodass die Anwendung eines Algorithmus auf diesen im Allgemeinen keine oder nur dürftige Ergebnisse liefert.
+Die Vorverarbeitung spielt in der Bildverarbeitung meist eine große Rolle. Die Qualität von Echtweltdaten ist oftmals weit entfernt vom Optimum, sodass die Anwendung eines Algorithmus auf diesen im Allgemeinen keine oder nur dürftige Ergebnisse liefert.
 Dies trifft auch auf die gegenwärtige Problemstellung zu. Eingabebilder, insbesondere durch eine Webcam erzeugte, können mehrere Probleme aufweisen.
-Geläufige Beispiele sind hierbei Rauschen, Verwaschungen und Unschärfe, welche durch den Sensor der Kamera, schlechte Lichtverhältnisse oder eine unruhige Kameraführung entstehen können.
+Geläufige Beispiele sind hierbei Rauschen, Verwaschungen und Unschärfe, welche durch den Sensor der Kamera, schlechte Lichtverhältnisse oder eine unruhige Kameraführung entstehen können. Ebenfalls kann es zu Spiegelungen und Reflektionen kommen, wenn  der QR-Code beispielsweise auf einem Handydisplay angezeigt wird.
 
-%TODO Ausführen mit optischen Zwischenergebnissen
-\begin{itemize}
-	\item Graustufenbild
-	\item Medianfilter
-	\item global Thresholding (Otsu)
-	\item Medianfilter
-\end{itemize}
+\begin{figure}[h]
+	\begin{center}
+		\subfigure[Eingabebild]{
+			\includegraphics[width=0.45\linewidth]{./images/original.jpg}
+			\label{fig:eingabebild}
+		}
+		\subfigure[binarisiertes und gefiltertes Bild]{
+			\includegraphics[width=0.45\linewidth]{./images/gray.jpg}
+			\label{fig:binarisiert}
+		}
+	\end{center}
+	\caption{Die Zusammenfassung der Vorverarbeitungsschritte.}
+	\label{fig:vorverarbeitung}
+\end{figure}
+
+Um diese Probleme zu reduzieren und die Erkennung möglichst stabil zu gestalten, wird die Eingabe (siehe Abbildung \ref{fig:eingabebild}) zunächst in ein Graustufenbild umgewandelt, was im Wesentlichen durch die Anwendung der folgenden Schritte begründet ist.
+Es folgt eine Anwendung des Medianfilters in einer Achter-Nachbarschaft, welche Rauschen und Verwaschungen minimieren kann. Die Wahl der Nachbarschaftsgröße wurde anhand eigener Testdaten experimentell ermittelt (siehe Kapitel \ref{s:evaluierung}).
+Als nächstes wird das gefilterte Graustufenbild binarisiert, was den Kontrast des QR-Codes im Bild maximiert. Diese Eigenschaft ist für die nachfolgende Kantendetektion eine wichtige Bedingung.
+Zum Abschluss wird erneut der Medianfilter angewendet, da dies zu einer weiteren Verbesserung der Erkennungsquote führt.
+Das Ergebnis der Vorverarbeitung ist in Abbildung \ref{fig:binarisiert} zu sehen.
 
 \subsubsection{Lokalisierung}
 
+Bei der Lokalisierung geht es um die Verortung des QR-Codes. Dafür wird nun nicht mehr das Eingabebild selbst, sondern das Ergebnis der Vorverarbeitung verwendet.
+Grund dafür ist, dass der \emph{Canny}-Operator auf das Bild angewendet wird, um die Konturen zu erhalten. Dieser funktioniert am besten bei hohem Kontrast.
+
+\begin{figure}[h]
+	\begin{center}
+		\subfigure[Konturen eines Positionsmarkers]{
+			\includegraphics[width=0.45\linewidth]{./images/area.png}
+			\label{fig:konturen}
+		}
+		\subfigure[Flächenverhältnisse]{
+			\includegraphics[width=0.45\linewidth]{./images/area.png}
+			\label{fig:flaecheninhalte}
+		}
+	\end{center}
+	\caption{TODO}
+	\label{fig:positionsmarker}
+\end{figure}
+
 \subsubsection{Geometrische Normalisierung}
+
+%Zunächst muss betrachtet werden, wie die Position und Ausrichtung eines QR-Codes definiert sind.
 
 \subsubsection{Binarisierung}
 
 \newpage
-\section{Evaluation}
+\section{Evaluierung}
+\label{s:evaluierung}
+
 Zur Evaluierung des entwickelten Programmes wurden diverse QR-Codes mit Hilfe eines Generators erstellt. Hierbei wurde darauf geachtet, dass unterschiedliche Webseiten aber auch unterschiedliche Texte codiert wurde. Dadurch wurde indirekt sichergestellt, dass QR-Codes verschiedener Versionen erstellt wurden. Diese QR-Codes wurden im Anschluss ausgedruckt und einzeln an unterschiedliche Stellen in einer realen Umgebung positioniert. Dort wurden sie fotografiert. 
 
 Beim Aufnehmen der Fotos wurde darauf geachtet, dass die QR-Codes möglichst planar liegen und jeweils nur ein Code sichtbar ist. Um für ein breites Spektrum an Testbildern zu sorgen, wurden unterschiedliche Belichtungen und Rotationen vorgenommen. Die Belichtungsvariationen reichen von natürlichen Tagesbeleuchtung über künstliche Beleuchtung in der Nacht bis hin zu Blitzlichtfotografien. Die Rotationen wurden in sämtlichen Dimensionen durchgeführt, um perspektivische Verzerrungen zu erreichen. Außerdem wurden die Bilder mit zwei unterschiedlichen Kameras aufgenommen, da hierdurch ein qualitativer Unterschied der Bilder entstand. So sind dunklere Bilder mit deutlicher Unschärfe entstanden, sowie helle Bilder mit hoher Schärfe. Zusätzlich zu den bisher genannten Parametern wurde auch die Entfernung des QR-Codes zu der Kamera variiert, um unterschiedliche Größen des Codes testen zu können.
