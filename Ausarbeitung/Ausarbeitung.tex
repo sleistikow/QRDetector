@@ -229,29 +229,29 @@ Zusammengenommen stellen diese beiden Kriterien bereits einen guten Klassifikato
 
 \subsubsection{Geometrische Normalisierung}
 
-Ziel der geometrischen Normalisierung ist es, den beliebig im Eingabebild positionierten, rotierten, skalierten und verzerrten QR-Code auf die Bildebene zu projezieren, um letztlich Axenparallele Module einheitlicher Größe zu erhalten.
-Dabei soll die Ausrichtung des QR-Codes immer dieselbe sein, d. h. die Positionsmarker sollen wie in Abbildung dargestellt \ref{fig:orientierung} transformiert werden.
-Für diesen Zweck approximieren wir zunächst die Konturen der in der Lokalisierung bestimmten Positionsmarker durch Vierecke. Dies hat zudem den Vorteil, dass durch Rauschen verursachte Ungenauigkeiten weiter minimiert werden. Nun sind zu jedem Positionsmarker genau vier Punkte bekannt, jedoch ist noch nicht bestimmt, welcher dieser Punkte welchem im Bild entspricht. Für die Transformation ist es notwendig, den vierten Eckpunkt zu kennen. Durch die Positionsmarker sind bereits drei der vier Eckpunkte des QR-Codes implizit bekannt, lediglich die Zuordnung muss noch bestimmt werden. Der vierte Punkt lässt sich durch den Schnitt zweier Geraden bilden, welche jeweils durch zwei aufeinanderfolgende Punkte einer Kontur definiert sind. Diese Punkte sind in grün bzw. gelb in Abbildung \ref{fig:orientierung} zu sehen.
-Für die Zuordnung der Punkte bilden wir die konvexe Hülle über alle Eckpunkte aller Konturen der Positionsmarker, wodurch die rote Kontur entsteht, ebenfalls zu sehen in genannter Abbildung. Diese enthält nun genau fünf im Uhrzeigersinn angeordnete Punkte, von denen vier die gesuchten Punkte zur Geradenbestimmung sind. Ebenfalls sind drei aufeinanderfolgende Punkt bereits drei der gesuchten Eckpunkte des QR-Codes. Noch nicht eindeutig ist hierbei die Zuordnung der Punkte auf der konvexen Hülle zu den Positionsmarkern. Diese Information gewinnen wir durch den Vergleich der Distanzen zwischen den weiß markierten Mittelpunkten der Konturen. Die längste Distanz ist, selbst bei recht starker perspektivischer Verzerrung, die Distanz zwischen dem oberen rechten und unteren Positionsmarker. Damit ist der ebenfalls der obere linke bekannnt und die Zuordnung lässt sich durchführen. Somit lassen sich auch die Punkte für die Berechnung des vierten Punktes bestimmen und alle vier Eckpunkte des QR-Codes sind samt ihrer Position bekannt.
-Im nächsten Schritt folgt die eigentliche Transformation.
-Dafür wird ein Zwischenspeicher benötigt, der das transformierte Bild enthält. Dessen Größe sollte möglichst minimal sein, um den Speicherverbrauch gering zu halten, es sollten jedoch auch keine Informationen bei der Transformation verloren gehen. Aus diesem Grund nehmen wir die größte der Distanzen zwischen den vier gefunden Eckpunkten im Bildraum als Seitenlänge des Zwischenspeichers.
-Nun wird mithilfe der verwendeten Bibliothek eine Matrix für die perspektivische Transformation berechnet, die jeden Eckpunkt des QR-Codes im Eingabebild auf den entsprechenden Eckpunkt im Zwischenspeicher transformiert, wobei der Rest des Bildes verworfen wird.
-Der Zwischenspeicher enthält nun den geometrisch normalisierten QR-Code.
-
-\begin{figure}[h]
+\begin{figure}[t]
 	\begin{center}
 		\subfigure[Orientierung eines QR-Codes]{
-			\includegraphics[width=0.45\linewidth]{./images/bounds.jpg} %TODO: besseres Bild
+			\includegraphics[width=0.45\linewidth]{./images/bounds.jpg}
 			\label{fig:orientierung}
 		}
 		\subfigure[Darstellung einer perspektivischen Transformation]{
-			\includegraphics[width=0.45\linewidth]{./images/bounds.jpg}
+			\includegraphics[width=0.45\linewidth]{./images/perspective.jpg}
 			\label{fig:perspektivisch}
 		}
 	\end{center}
 	\caption{Darstellung der Zwischenschritte der geometrischen Normalisierung. Zu sehen ist zudem die konvexe Hülle über die Eckpunkte der Positionsmarker, welche für die Zuordnung der Marker zu ihrer Position im QR-Code verwendet wird.}
 	\label{fig:geometrie}
 \end{figure}
+
+Ziel der geometrischen Normalisierung ist es, den beliebig im Eingabebild positionierten, rotierten, skalierten und verzerrten QR-Code auf die Bildebene zu projezieren, um letztlich Axenparallele Module einheitlicher Größe zu erhalten.
+Dabei soll die Ausrichtung des QR-Codes immer dieselbe sein, d. h. die Positionsmarker sollen wie in Abbildung dargestellt \ref{fig:orientierung} transformiert werden.
+Für diesen Zweck approximieren wir zunächst die Konturen der in der Lokalisierung bestimmten Positionsmarker durch Vierecke. Dies hat zudem den Vorteil, dass durch Rauschen verursachte Ungenauigkeiten weiter minimiert werden. Nun sind zu jedem Positionsmarker genau vier Punkte bekannt, jedoch ist noch nicht bestimmt, welcher dieser Punkte welchem im Bild entspricht. Für die Transformation ist es notwendig, den vierten Eckpunkt zu kennen. Durch die Positionsmarker sind bereits drei der vier Eckpunkte des QR-Codes implizit bekannt, lediglich die Zuordnung muss noch bestimmt werden. Der vierte Punkt lässt sich durch den Schnitt zweier Geraden bilden, welche jeweils durch zwei aufeinanderfolgende Punkte einer Kontur definiert sind. Diese Punkte sind in grün bzw. gelb in Abbildung \ref{fig:orientierung} zu sehen.
+Für die Zuordnung der Punkte bilden wir die konvexe Hülle über alle Eckpunkte aller Konturen der Positionsmarker, wodurch die rote Kontur entsteht, ebenfalls zu sehen in genannter Abbildung. Diese enthält nun genau fünf im Uhrzeigersinn angeordnete Punkte, von denen vier die gesuchten Punkte zur Geradenbestimmung sind. Ebenfalls sind drei aufeinanderfolgende Punkt bereits drei der gesuchten Eckpunkte des QR-Codes. Noch nicht eindeutig ist hierbei die Zuordnung der Punkte auf der konvexen Hülle zu den Positionsmarkern. Diese Information gewinnen wir durch den Vergleich der Distanzen zwischen den weiß markierten Mittelpunkten der Konturen. Die längste Distanz ist, selbst bei recht starker perspektivischer Verzerrung, die Distanz zwischen dem oberen rechten und unteren Positionsmarker. Damit ist der ebenfalls der obere linke bekannnt und die Zuordnung lässt sich durchführen. Somit lassen sich auch die Punkte für die Berechnung des vierten Punktes bestimmen und alle vier Eckpunkte des QR-Codes sind samt ihrer Position bekannt.
+Im nächsten Schritt folgt die eigentliche Transformation.
+Dafür wird ein Zwischenspeicher benötigt, der das transformierte Bild enthält. Dessen Größe sollte möglichst minimal sein, um den Speicherverbrauch gering zu halten, es sollten jedoch auch keine Informationen bei der Transformation verloren gehen. Aus diesem Grund nehmen wir die größte der Distanzen zwischen den vier gefunden Eckpunkten im Bildraum als Seitenlänge des Zwischenspeichers.
+Nun wird mithilfe der verwendeten Bibliothek eine Matrix für die perspektivische Transformation berechnet, die jeden Eckpunkt des QR-Codes im Eingabebild auf den entsprechenden Eckpunkt im Zwischenspeicher transformiert (zu sehen in Abbildung \ref{fig:perspektivisch}), wobei der Rest des Bildes verworfen wird.
+Der Zwischenspeicher enthält nun den geometrisch normalisierten QR-Code.
 
 \subsubsection{Binarisierung}
 
