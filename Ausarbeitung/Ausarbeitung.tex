@@ -69,12 +69,13 @@ Münster, 24.03.2017
 
 \newpage
 \tableofcontents
+\listoffigures
 
 \newpage
 
 \section{Einleitung}
 \label{s:einleitung}
-In der heutigen, digitalen Welt wird der einfache und schnelle Austausch von Informationen immer wichtiger. Als eines von vielen Kommunikationsträger dient dabei der sogenannte Quick Response (kurz QR) Code, da er Informationen gut komprimieren und durch bestimmte Software schnell wieder zurück verarbeitet werden kann.
+In der heutigen, digitalen Welt wird der einfache und schnelle Austausch von Informationen immer wichtiger. Als eines von vielen Kommunikationsträgern dient dabei der sogenannte Quick Response (kurz QR) Code, da er Informationen gut komprimieren und durch bestimmte Software schnell wieder zurück verarbeitet werden kann.
 
 Ein QR-Code ist im wesentlichen ein Raster von schwarzen und weißen Flächen, welche Quadratisch angeordnet sind. In aktuelleren Standards ist es allerdings auch erlaubt, kleinere Bilder (wie z.B. Firmenlogos) in den QR-Code zu integrieren. Heutzutage sind QR-Codes sehr populär und werden meist zur Kodierung von Internetseiten verwendet. Der Einsatzbereich eines QR-Codes beschränkt sich allerdings nicht nur auf URL Komprimierung: Mit seiner Hilfe lässt sich jeder beliebige Text, Bilder oder sogar Hologramme kompakt darstellen. Ein wesentliches Problem von QR-Codes ist allerdings, dass nicht direkt ersichtlich ist, welche Daten ein QR-Code enthält. Beispielsweise wäre es möglich Schadsoftware zu kodieren, welche beim Lesen ausgeführt wird und das entsprechende Lesegerät befällt.
 
@@ -111,9 +112,9 @@ Am äußeren Rand der Positionsmarker verläuft das sogenannte Timing-Pattern, w
 
 Direkt an die Positionsmarker oben rechts und unten links grenzen die Versionsinformationen an,  welche durch die roten Flächen gekennzeichnet sind. Sie beschreiben die verwendete Version des QR Codes, welche wiederum die Größe des QR-Code festlegt. In der zuletzt erschienenen Version 40 ist, durch die oben beschriebene Formel, eine maximale Größe von $177 \times 177$ Datenpunkten erlaubt.
 
-An der jeweils anderen Seite der beiden Positionsmarker und zusätzlich an beiden Seiten vom Positionsmarker oben links ist das jeweilige Format des QR-Codes dargestellt (blaue Streifen in Abbildung \ref{fig:aufbau}). Die Streifen sind jeweils genau ein Bit Breit ist und enthalten die Informationen über das Fehlerkorrektur-Level und das verwendete Masken-Pattern um den QR Code zu kodieren. Diese Eigenschaften werden in Kapitel \ref{ss:fehlerkorrektur} und \ref{ss:codierung} noch genauer  betrachtet.
+An der jeweils anderen Seite der beiden Positionsmarker und zusätzlich an beiden Seiten vom Positionsmarker oben links ist das jeweilige Format des QR-Codes dargestellt (blaue Streifen in Abbildung \ref{fig:aufbau}). Die Streifen sind jeweils genau ein Bit Breit und enthalten Informationen über das Fehlerkorrektur-Level und das verwendete Masken-Pattern um den QR Code zu kodieren.% Diese Eigenschaften werden in Kapitel \ref{ss:fehlerkorrektur} und \ref{ss:codierung} noch genauer  betrachtet.
 
-Jeder QR-Code ist von einer sogenannten Sperrzone umgeben, welche komplett weiß sein muss. Diese weißen Pixel enthalten noch keine Informationen über die kodierten Daten und dienen zur Freilegung der Positionsmarker, was für die Konturerkennung notwendig ist. Die Sperrzone umfasst den gesamten QR-Code und ist an jeder Stelle gleich Breit.
+Jeder QR-Code ist von einer sogenannten Sperrzone umgeben, welche komplett weiß sein muss. Diese Pixel enthalten noch keine Informationen über die kodierten Daten und dienen zur Freilegung der Positionsmarker, was für die Konturerkennung notwendig ist. Die Sperrzone umfasst den gesamten QR-Code und ist an jeder Stelle gleich Breit.
 
 Ab Version 2 wurden außerdem zusätzliche Ausrichtungsmarker eingeführt, welche die Berechnung der Position noch einmal vereinfachen sollen. Sie sind deutlich kleiner (jeweils 5 Module in Länge und Breite) als die eigentlichen Positionsmarker und können dem QR-Code optional hinzugefügt werden.
 
@@ -126,14 +127,41 @@ Beachtet man all diese Formalien, so ist es mit folgender Formel möglich, den S
 
 Im Falle der aktuellsten Version 40 mit einem Fehlerkorrekturlevel L (7\%) ist also eine Kodierung von $23648$ Bits möglich.
 
-\subsection{Fehlerkorrektur}
-\label{ss:fehlerkorrektur}
+%\subsection{Fehlerkorrektur}
+%\label{ss:fehlerkorrektur}
 
-\subsection{Codierung der Daten}
-\label{ss:codierung}
+%\subsection{Codierung der Daten}
+%\label{ss:codierung}
 
 \subsection{Globales Thresholding nach Otsu}
 \label{ss:otsu}
+
+Ein Bild zu binearisieren bedeutet, seine Pixel genau einer von zwei Klassen zuzuordnen. Für dieses Problem gibt es verschiedene Lösungsansätze wie zum Beispiel das globalen Thresholding. Bei dieser Methode wird jeder einzelne Pixel des Bildes $I$ gegen einen konstanten Wert $t$ verglichen. Ist $I_{r,c} \leq t$, so wird dieser Pixel der ersten Klasse zugewiesen, andernfalls der zweiten Klasse.
+
+Bei Bildern mit verschiedenen Helligkeitsbereichen versagt diese Methode jedoch recht schnell und oftmals ist ein geeigneter Trasholding Wert nicht bekannt. Genau diese Problematik versucht die Otsu Methode zu umgehen, indem sie den optimalen Wert für ein globales Thresholding dynamisch berechnet. Die Idee des Verfahrens ist, im Grauwerthistogramm des Bildes nach zwei Peaks zu suchen und dessen Mitte als Thresholding Wert zu verwenden. Aus diesem Grund eignet sich die Otsu Methode besonders gut für Bilder, welche im wesentlichen nur aus zwei Hauptfarben bestehen.
+
+Ziel der Binarisierung ist es so wenig Pixel wie möglich der falschen Klasse zuzuordnen. Im Kontext der beiden Peaks heißt das, dass deren Streuung sich nicht überschneiden aber trotzdem den ganzen Farbbereich abdecken sollte. Ein Maß für die Streuung ist die Varianz, mit welcher sich folgendes Minimierungsproblem formulieren lässt: $\sigma^2(t) = q_1 * \sigma^2_1(t) + q_2 * \sigma^2_2(t)$
+\begin{align*}
+	&q_1(t) = \sum_{i=1}^{t} P(i)
+	&&q_2(t) = \sum_{i=t+1}^{I} P(i)\\
+	&\mu_1(t) = \sum_{i=1}^{t} \frac{i * P(i)}{q_1(t)}
+	&&\mu_2(t) = \sum_{i=t+1}^{I} \frac{i * P(i)}{q_2(t)}\\
+	&\sigma^2_1(t) = \sum_{i=1}^{t} [i - \mu_1(t)]^2 * \frac{P(i)}{q_1(t)} \hspace{50pt}
+	&&\sigma^2_2(t) = \sum_{i=t+1}^{I} [i - \mu_2(t)]^2 * \frac{P(i)}{q_1(t)}
+\end{align*}
+
+Hierbei entsprechen $\mu_1$ und $\mu_2$ genau der Definition des Erwartungswertes; das selbe gilt für $\sigma_1$ und $\sigma_2$ im Bezug auf die Varianz. Da das Histogramm allerdings bei $t$ aufgeteilt wird, müssen die Wahrscheinlichkeiten durch die Division korrigiert werden.
+
+Gesucht ist nun der Wert $t$, für welchen $\sigma^2(t)$ minimal wird. Es müssen also 256 (Anzahl möglicher Splits im Grauwerthistogramm) Werte für $t$ getestet werden, bis der optimale Thresholding Wert gefunden wurde.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.7\textwidth]{images/otsu.jpg}
+	\caption{Vergleich von Thresholding Verfahren}
+	\label{fig:otsu}
+\end{figure}
+
+Wie in Abbildung \ref{fig:otsu} zu sehen, können durch die Kombination von Gaußfilter und Otsu Thresholding sehr gute Ergebnisse für (größtenteils) zweifarbige Bilder entstehen. Durch die vorherige Suche des Thresholding Werts dauert dieses Verfahren allerdings auch etwas länger.
 
 % Hier bitte einmal kurz erklären, wie der Funktioniert, gerne auch mit Bildern.
 % Siehe: http://docs.opencv.org/3.2.0/d7/d4d/tutorial_py_thresholding.html
