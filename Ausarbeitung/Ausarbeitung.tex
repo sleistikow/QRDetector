@@ -199,29 +199,54 @@ Das Ergebnis der Vorverarbeitung ist in Abbildung \ref{fig:binarisiert} zu sehen
 
 \subsubsection{Lokalisierung}
 
-Bei der Lokalisierung geht es um die Verortung des QR-Codes. Dafür wird nun nicht mehr das Eingabebild selbst, sondern das Ergebnis der Vorverarbeitung verwendet.
-Grund dafür ist, dass der \emph{Canny}-Operator auf das Bild angewendet wird, um die Konturen zu erhalten. Dieser funktioniert am besten bei hohem Kontrast.
+Bei der Lokalisierung geht es um die Verortung des QR-Codes, d.h. die Bestimmung dessen Positionsmarker. Dafür wird nun nicht mehr das Eingabebild selbst, sondern das Ergebnis der Vorverarbeitung verwendet.
+Grund dafür ist, dass der \emph{Canny}-Operator \cite{CANNY} auf das Bild angewendet wird, um die enthaltenen Konturen zu erhalten, welcher gut bei hohem Konstrast bzw. bei scharfen Kanten funktioniert. Im Detail bedeutet dies, dass die Wahl der Grenzwerte der enthaltenen Hysterese-Operation recht flexibel ausfällt. Ausgehend von einer maximalen Kantenstärke von 255 haben wir uns für eine untere Schwelle von 50 und eine obere Schwelle von 180 entschieden, da diese Werte im Vergleich zu keiner Verschlechterung unserer Testergebnisse geführt haben. Es sei jedoch erwähnt, dass auch Werte von 20 bzw. 150 das Ergebnis nicht beeinflusst haben, was die Flexibilität in der Wahl der Parameter unterstreicht, welche durch die scharfen Kanten erreicht wurde.
 
 \begin{figure}[h]
 	\begin{center}
-		\subfigure[Konturen eines Positionsmarkers]{
+		\subfigure[Ergebnis einer Kantendetektion]{
+			\includegraphics[width=0.45\linewidth]{./images/edges.jpg} %TODO: besseres Bild
+			\label{fig:canny}
+		}
+		\subfigure[Hierarchie der Konturen eines Positionsmarkers]{
 			\includegraphics[width=0.45\linewidth]{./images/area.png}
 			\label{fig:konturen}
 		}
-		\subfigure[Flächenverhältnisse]{
-			\includegraphics[width=0.45\linewidth]{./images/area.png}
-			\label{fig:flaecheninhalte}
-		}
 	\end{center}
-	\caption{TODO}
-	\label{fig:positionsmarker}
+	\caption{Das Ergebnis der Kantendetektion eines QR-Codes und der Konturerkennung.}
+	\label{fig:lokalisierung}
 \end{figure}
+
+Im nächsten Schritt werden die Konturen samt ihrer Hierarchie aus den gewonnenen Kantenstärken extrahiert. Gesucht werden dabei Konturen, welche exakt fünf ineinandergeschachtelte Konturen enthalten. Zu dieser Einschränkung kommt es durch die Arbeitsweise der verwendeten Bibliothek und durch den Aufbau der Positionsmarker der QR-Codes. Letztere bestehen aus 7x7 Modulen in quadratischer Anordnung und sind durch eine weiße Sperrschicht umgeben (siehe Kapitel \ref{ss:aufbau}). Durch den weißen Bereich im Innern ergeben sich somit drei Farbwechsel über den halben Querschnitt, welche jeweils doppelt gezählt werden, da sowohl der Wechsel von außen nach innen, als auch der Wechsel von innen nach außen gezählt wird, was in Abbildung \ref{fig:konturen} zu erkennen ist. Wir suchen letztlich die blau markierte Kontur, da diese den größten Umfang hat, was bei der geometrischen Normalisierung im folgenden Unterkapitel von Bedeutung sein wird.
+
+An dieser Stelle ist jedoch ein weiteres Kriterium zum Erkennen der Positionsmarker notwendig, da die Verschachtelung der Konturen kein Alleinstellungsmerkmal ist.
+Betrachten wir hingegen zusätzlich die Verhältnisse der Flächeninhalte hierarchisch aufeinanderfolgender Konturen, so stellt sich dies als recht sicheres Erkennungsmerkmal heraus. Durch die bekannte Einteilung des Positionsmarkers in Module lässt sich, von außen nach innen betrachtet, die Abfolge $1 - 7^2:5^2 - 1 - 5^2:3^2 - 1$ der Verhältnisse von jeweils äußerer zu innerer Kontur festhalten.
+Diese Verhältnisse bleiben auch bei perspektivischer Verzerrung in etwa bestehen, wobei ein Schwellwert auch hier etwaigen Ungenauigkeiten Abhilfe verschafft.
+Zusammengenommen stellen diese beiden Kriterien bereits einen guten Klassifikator für Positionsmarker dar. Sollten dennoch mehr als drei Treffer gefunden werden, bricht das Programm ab, da von mehr als einem QR-Code im Eingabebild auszugehen ist.
 
 \subsubsection{Geometrische Normalisierung}
 
-%Zunächst muss betrachtet werden, wie die Position und Ausrichtung eines QR-Codes definiert sind.
+Ziel der geometrischen Normalisierung ist es, den beliebig im Eingabebild positionierten, rotierten, skalierten und verzerrten QR-Code auf die Bildebene zu projezieren, um letztlich Axenparallele Module einheitlicher Größe zu erhalten.
+Dafür muss zunächst betrachtet werden, wie die Position und Ausrichtung eines QR-Codes definiert sind.
+
+\begin{itemize}
+	\item Grafik Ausrichtung
+	\item Konvexe Hülle
+	\item Simplify Contours
+	\item vierten Punkt berechnen
+	\item adäquate Puffergröße finden
+	\item perspektivische Transformation
+\end{itemize}
 
 \subsubsection{Binarisierung}
+
+\begin{itemize}
+	\item Modulgröße im Bildraum bestimmen
+	\item Anzahl Module bestimmen für Ausgabe (Approx. / Timing)
+	\item Binarisieren der geometrischen Normalisierung
+	\item Ausgabebild füllen - mit Nachbarschaft
+\end{itemize}
+
 
 \newpage
 \section{Evaluierung}
