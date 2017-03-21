@@ -38,6 +38,8 @@
 *.toc
 *.synctex.gz
 *.pdf
+*.bbl
+*.blg
 
 #Test directories
 tests/diffs

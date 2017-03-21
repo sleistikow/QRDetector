@@ -8,6 +8,7 @@
 \usepackage{setspace}
 \onehalfspacing
 
+\usepackage[nottoc,numbib]{tocbibind}
 \usepackage[bookmarks, pageanchor, hidelinks]{hyperref}
 \usepackage[left=2.5cm, right=4cm, top=2.0cm, bottom=2.0cm]{geometry}
 
@@ -44,7 +45,6 @@
 	Dokumentation zum Abschluss des\\
 	\large
 	\textsc{Computer Vision Praktikum}
-	%			\textsc{Master of Science}
 	\par
 	\normalsize
 	\vspace*{12ex}
@@ -67,11 +67,9 @@ Münster, 24.03.2017
 \newgeometry{left=2.5cm, right=4cm, top=2.0cm, bottom=2.0cm}
 
 
-	
-%\maketitle
 \newpage
-
 \tableofcontents
+
 \newpage
 
 \section{Einleitung}
@@ -86,6 +84,10 @@ Innerhalb diese Praktikums haben wir uns damit auseinander gesetzt, wie man plan
 
 \section{Aufgabenstellung}
 \label{s:aufgabenstellung}
+Die offiziell, wortgetreue Aufgabenstellung lautete dabei wie folgt:
+
+Schreiben Sie ein Programm, welches ein Eingabebild entgegennimmt und in diesem (wenn möglich) einen planar aufgenommenen QR-Code lokalisiert und als binarisiertes Bild ausgibt. Sollte kein QR-Code im Bild lokalisiert werden können, so geben Sie ein $1 \! \times \! 1$ Pixel großes, schwarzes Bild aus. Gehen Sie davon aus, dass in jedem Bild maximal ein QR-Code enthalten ist.
+
 
 \newpage
 
@@ -310,9 +312,12 @@ Die Ungenauigkeit bei der Bestimmung des vierten Eckpunktes ist generell ein Asp
 In einem der Testbilder wurde außerdem der dünne schwarze Rahmen um die Sperrzone als Positionsmarker gekennzeichnet, was im Folgenden zu deutlichen Fehlern geführt hat. Dies liegt vermutlich an einer ungünstigen Schachtelung von Konturen im QR-Code und tritt äußerst selten auf. Durch weitere Überprüfungen bei der Bestimmung der Positionsmaker, durch beispielsweise Abgleichen der Konturformen zueinander, sollte dieser Fehler behoben werden können.
 
 Das entwickelte Programm ist in der Lage QR-Codes unter perspektiver Verzerrung sowie bei Bildunschärfe, Rotations-, Belichtungs- und Skalierungsveränderungen zu erkennen. Die Codes werden in eine normalisierte Version transformiert, welche im nächsten Schritt durch ein Lesegerät lesbar wäre. Die Anwendung bietet dennoch Potential zur Verbesserung, wobei die exaktere Bestimmung des vierten Eckpunktes im Fokus liegt. Dadurch sollte die Anzahl der teilweise richtig erkannten QR-Codes zugunsten der komplett richtig erkannten Codes minimiert werden.
+
+
+\newpage
+
+\nocite{*}
+\bibliographystyle{plain}
+\bibliography{bib/literature}
+
 \end{document}
-
-
-% Ref ohne BibTex???
-% http://www.philippreiss.com/how-to-qr-code/
-% https://de.wikipedia.org/wiki/QR-Code
