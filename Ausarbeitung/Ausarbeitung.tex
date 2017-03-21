@@ -149,6 +149,7 @@ Im Anschluss wird auf Details der Detektion eingegangen und erklärt, wie die Au
 Grundsätzlich arbeitet das Programm in zwei Modi: dem \emph{Release}- und dem \emph{Live}-Modus.
 Ersterer ist für die Evaluierung erstellt worden und erzeugt ein reines Konsolenprogramm, welches ohne weitere Umwege die Eingabe in die Ausgabe überführt.
 Im \emph{Live}-Modus hingegen verwendet das Programm die Webcam des ausführenden Rechners als Eingabe, falls vorhanden. Es werden also, abhängig von deren Aufnahmeeigenschaften, kontinuierlich neue Eingaben und somit Ausgaben generiert. Dabei werden zusätzliche visuelle Ausgaben der durchgeführten Zwischenschritte erzeugt, welche im Unterkapitel \ref{s:detektion} näher erläutert werden.
+Die Implementierung ist in \emph{C++} \cite{stroustrup1995c++} in Verbindung mit \emph{OpenCV} \cite{bradski2008learning} als Algorithmenbibliothek geschrieben.
 
 \subsection{Eingabe}
 \label{s:eingabe}
@@ -202,7 +203,7 @@ Das Ergebnis der Vorverarbeitung ist in Abbildung \ref{fig:binarisiert} zu sehen
 \subsubsection{Lokalisierung}
 
 Bei der Lokalisierung geht es um die Verortung des QR-Codes, d.h. die Bestimmung dessen Positionsmarker. Dafür wird nun nicht mehr das Eingabebild selbst, sondern das Ergebnis der Vorverarbeitung verwendet.
-Grund dafür ist, dass der \emph{Canny}-Operator \cite{CANNY} auf das Bild angewendet wird, um die enthaltenen Konturen zu erhalten, welcher gut bei hohem Konstrast bzw. bei scharfen Kanten funktioniert. Im Detail bedeutet dies, dass die Wahl der Grenzwerte der enthaltenen Hysterese-Operation recht flexibel ausfällt. Ausgehend von einer maximalen Kantenstärke von 255 haben wir uns für eine untere Schwelle von 50 und eine obere Schwelle von 180 entschieden, da diese Werte im Vergleich zu keiner Verschlechterung unserer Testergebnisse geführt haben. Es sei jedoch erwähnt, dass auch Werte von 20 bzw. 150 das Ergebnis nicht beeinflusst haben, was die Flexibilität in der Wahl der Parameter unterstreicht, welche durch die scharfen Kanten erreicht wurde.
+Grund dafür ist, dass der \emph{Canny}-Operator \cite{canny1986computational} auf das Bild angewendet wird, um die enthaltenen Konturen zu erhalten, welcher gut bei hohem Konstrast bzw. bei scharfen Kanten funktioniert. Im Detail bedeutet dies, dass die Wahl der Grenzwerte der enthaltenen Hysterese-Operation recht flexibel ausfällt. Ausgehend von einer maximalen Kantenstärke von 255 haben wir uns für eine untere Schwelle von 50 und eine obere Schwelle von 180 entschieden, da diese Werte im Vergleich zu keiner Verschlechterung unserer Testergebnisse geführt haben. Es sei jedoch erwähnt, dass auch Werte von 20 bzw. 150 das Ergebnis nicht beeinflusst haben, was die Flexibilität in der Wahl der Parameter unterstreicht, welche durch die scharfen Kanten erreicht wurde.
 
 \begin{figure}[h]
 	\begin{center}
@@ -233,9 +234,9 @@ Dabei soll die Ausrichtung des QR-Codes immer dieselbe sein, d. h. die Positions
 Für diesen Zweck approximieren wir zunächst die Konturen der in der Lokalisierung bestimmten Positionsmarker durch Vierecke. Dies hat zudem den Vorteil, dass durch Rauschen verursachte Ungenauigkeiten weiter minimiert werden. Nun sind zu jedem Positionsmarker genau vier Punkte bekannt, jedoch ist noch nicht bestimmt, welcher dieser Punkte welchem im Bild entspricht. Für die Transformation ist es notwendig, den vierten Eckpunkt zu kennen. Durch die Positionsmarker sind bereits drei der vier Eckpunkte des QR-Codes implizit bekannt, lediglich die Zuordnung muss noch bestimmt werden. Der vierte Punkt lässt sich durch den Schnitt zweier Geraden bilden, welche jeweils durch zwei aufeinanderfolgende Punkte einer Kontur definiert sind. Diese Punkte sind in grün bzw. gelb in Abbildung \ref{fig:orientierung} zu sehen.
 Für die Zuordnung der Punkte bilden wir die konvexe Hülle über alle Eckpunkte aller Konturen der Positionsmarker, wodurch die rote Kontur entsteht, ebenfalls zu sehen in genannter Abbildung. Diese enthält nun genau fünf im Uhrzeigersinn angeordnete Punkte, von denen vier die gesuchten Punkte zur Geradenbestimmung sind. Ebenfalls sind drei aufeinanderfolgende Punkt bereits drei der gesuchten Eckpunkte des QR-Codes. Noch nicht eindeutig ist hierbei die Zuordnung der Punkte auf der konvexen Hülle zu den Positionsmarkern. Diese Information gewinnen wir durch den Vergleich der Distanzen zwischen den weiß markierten Mittelpunkten der Konturen. Die längste Distanz ist, selbst bei recht starker perspektivischer Verzerrung, die Distanz zwischen dem oberen rechten und unteren Positionsmarker. Damit ist der ebenfalls der obere linke bekannnt und die Zuordnung lässt sich durchführen. Somit lassen sich auch die Punkte für die Berechnung des vierten Punktes bestimmen und alle vier Eckpunkte des QR-Codes sind samt ihrer Position bekannt.
 Im nächsten Schritt folgt die eigentliche Transformation.
-Dafür wird ein Zwischenspeicher benötigt, der das transformierte Bild enthält. Dessen Größe sollte möglichst minimal sein, um den Speicherverbrauch gering zu halten, es sollten jedoch auch keine Informationen bei der Transformation verloren gehen. Aus diesem Grund nehmen wir die größte der Distanzen zwischen den vier gefunden Eckpunkten im Bildraum.
-%TODO
-
+Dafür wird ein Zwischenspeicher benötigt, der das transformierte Bild enthält. Dessen Größe sollte möglichst minimal sein, um den Speicherverbrauch gering zu halten, es sollten jedoch auch keine Informationen bei der Transformation verloren gehen. Aus diesem Grund nehmen wir die größte der Distanzen zwischen den vier gefunden Eckpunkten im Bildraum als Seitenlänge des Zwischenspeichers.
+Nun wird mithilfe der verwendeten Bibliothek eine Matrix für die perspektivische Transformation berechnet, die jeden Eckpunkt des QR-Codes im Eingabebild auf den entsprechenden Eckpunkt im Zwischenspeicher transformiert, wobei der Rest des Bildes verworfen wird.
+Der Zwischenspeicher enthält nun den geometrisch normalisierten QR-Code.
 
 \begin{figure}[h]
 	\begin{center}
@@ -254,13 +255,17 @@ Dafür wird ein Zwischenspeicher benötigt, der das transformierte Bild enthält
 
 \subsubsection{Binarisierung}
 
-\begin{itemize}
-	\item Modulgröße im Bildraum bestimmen
-	\item Anzahl Module bestimmen für Ausgabe (Approx. / Timing)
-	\item Binarisieren der geometrischen Normalisierung
-	\item Ausgabebild füllen - mit Nachbarschaft
-\end{itemize}
-
+Um das Ausgabebild zu erhalten, welches dem tatsächlichen QR-Code entspricht, d. h. ein Modul entspricht einem Pixel, sind noch einige wenige Schritte notwendig.
+Zunächst muss die tatsächliche Anzahl der Module bestimmt werden.
+Dafür umschließen wir die Konturen der Positionsmarker mit Rechtecken minimaler Größe und bilden das Mittel der Seitenlängen über alle Rechtecke.
+Zusammen mit der Information, dass die Positionsmarker genau sieben Module breit sind, lässt sich eine erste Abschätzung über die Modulgröße im Bildraum gewinnen.
+Verbessern lässt sich diese mit dem Wissen, dass sich die Anzahl der Module gemäß $17 + n \cdot 4$ mit $n = 1, \dots, 40$ zusammensetzt (siehe Unterkapitel \ref{ss:aufbau}). So kann immer zum nächsten Vielfachen gerundet werden.
+Ein alternativer Ansatz kann mittels des Timings des QR-Codes verfolgt werden.
+Dieses ist eine Reihe, bzw. Spalte von Modulen, in der je zwei aufeinanderfolgende Module die gegensätzliche Farbe besitzen, sodass man die Anzahl der Farbwechsel zählen kann. Die Problematik bei diesem Ansatz besteht darin, dass die Abschätzung bereits sehr gut sein muss, um die korrekte Zeile bzw. Spalte im Bild zu treffen, weshalb wir uns für den ersten Ansatz entschieden haben.
+Nun wird der QR-Code im Zwischenspeicher mit der Methode von Otsu binarisiert, was vorbereitend und das Ausgabebild mit der vorher bestimmten Größe bereitgestellt.
+Da die Modulgröße im Bildraum nun bekannt ist, kann der Zwischenspeicher in ein Gitter eingeteilt werden, wobei jede Zelle im Idealfall ein Modul beinhaltet.
+Im Folgenden wird für jede Zelle die Mitte als Abtastpunkt gewählt und das Ausgabebild gefüllt. Dafür wird über alle Zellen iteriert und, unter Berücksichtigung der unmittelbaren Nachbarschaft für eine Fehlerminimierung, der Farbwert jeder Zelle ausgelesen und in das Ausgabebild übernommen.
+Das Ausgabebild ist somit fertig generiert und wird verlustfrei im \emph{PNG} Format gespeichert.
 
 \newpage
 \section{Evaluierung}
