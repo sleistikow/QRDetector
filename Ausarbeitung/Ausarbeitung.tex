@@ -77,9 +77,7 @@ Münster, 24.03.2017
 \label{s:einleitung}
 In der heutigen, digitalen Welt wird der einfache und schnelle Austausch von Informationen immer wichtiger. Als einer von vielen Kommunikationsträgern dient dabei der sogenannte Quick Response (kurz QR) Code, da Informationen sich mit ihm gut kodieren und durch bestimmte Software effektiv dekodieren lassen.
 
-Ein QR-Code ist im wesentlichen ein Raster von schwarzen und weißen Flächen, welche quadratisch angeordnet sind. In aktuelleren Standards ist es allerdings auch erlaubt, kleinere Bilder (wie z.B. Firmenlogos) in den QR-Code zu integrieren. Heutzutage sind QR-Codes sehr populär und werden meist zur Kodierung von Internetseiten verwendet. Der Einsatzbereich eines QR-Codes beschränkt sich allerdings nicht nur auf URL-Kodierung: Mit seiner Hilfe lässt sich jeder beliebige Text, Bilder oder sogar Hologramme kompakt darstellen. Ein wesentliches Problem von QR-Codes ist allerdings, dass nicht direkt ersichtlich ist, welche Daten ein QR-Code enthält. Beispielsweise wäre es möglich Schadsoftware zu kodieren, welche beim Lesen ausgeführt wird und das entsprechende Lesegerät befällt.
-
-%TODO Zitieren!
+Ein QR-Code ist im wesentlichen ein Raster von schwarzen und weißen Flächen, welche quadratisch angeordnet sind. In aktuelleren Standards ist es allerdings auch erlaubt, kleinere Bilder (wie z.B. Firmenlogos) in den QR-Code zu integrieren. Heutzutage sind QR-Codes sehr populär und werden meist zur Kodierung von Internetseiten verwendet. Der Einsatzbereich eines QR-Codes beschränkt sich allerdings nicht nur auf URL-Kodierung: Mit seiner Hilfe lässt sich jeder beliebige Text, Bilder oder sogar Hologramme kompakt darstellen. Ein wesentliches Problem von QR-Codes ist allerdings, dass nicht direkt ersichtlich ist, welche Daten ein QR-Code enthält. Beispielsweise wäre es möglich Schadsoftware zu kodieren, welche beim Lesen ausgeführt wird und das entsprechende Lesegerät befällt \cite{security}.
 
 Da die Eingabe eines QR-Codes meist durch ein aufgenommenes Bild einer Kamera vorliegt, ist es unumgänglich, dass eine schnelle Lokalisierung und Transformation in einen lesbaren Zustand des QR Codes durchgeführt werden muss.
 
@@ -100,9 +98,7 @@ Schreiben Sie ein Programm, welches ein Eingabebild entgegennimmt und in diesem 
 \subsection{Aufbau eines QR-Codes}
 \label{ss:aufbau}
 
-Ein QR-Code in eine Matrix $M = n \times n$ \Big(auf Grund der aktuellen Standards gilt $n \in \big\{17+4*v \,\, | \,\, v \in  \{1,\dots, 40\}\big\}$\Big) welche die kodierten Daten in binärer Form darstellt. Ein schwarzes Quadrat stellt dabei eine 1 dar und ein leeres bzw. weißes Feld eine 0.
-
-%TODO Zitieren (aktueller Standard?)
+Ein QR-Code in eine Matrix $M = n \times n$ \Big(auf Grund der aktuellen Standards \cite{wikipedia} gilt $n \in \big\{17+4*v \,\, | \,\, v \in  \{1,\dots, 40\}\big\}$\Big) welche die kodierten Daten in binärer Form darstellt. Ein schwarzes Quadrat stellt dabei eine 1 dar und ein leeres bzw. weißes Feld eine 0.
 
 \begin{figure}[h]
 	\includegraphics[width=\textwidth]{images/aufbau.png}
@@ -131,12 +127,6 @@ Beachtet man all diese Formalien, so ist es mit folgender Formel möglich, den S
 
 Im Falle der aktuellsten Version 40 mit einem Fehlerkorrekturlevel L (7\%) ist also eine Kodierung von $23648$ Bits möglich.
 
-%\subsection{Fehlerkorrektur}
-%\label{ss:fehlerkorrektur}
-
-%\subsection{Codierung der Daten}
-%\label{ss:codierung}
-
 \subsection{Globales Thresholding nach Otsu}
 \label{ss:otsu}
 
@@ -161,7 +151,7 @@ Gesucht ist nun der Wert $t$, für welchen $\sigma^2(t)$ minimal wird. Es müsse
 \begin{figure}[h]
 	\centering
 	\includegraphics[width=0.7\textwidth]{images/otsu.jpg}
-	\caption{Vergleich von Thresholding Verfahren} %TODO Quelle der Grafik!
+	\caption{Vergleich von Thresholding Verfahren \cite{img:thresholding}}
 	\label{fig:otsu}
 \end{figure}
 
